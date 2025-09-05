@@ -1,15 +1,23 @@
 {
   "name": "redvelvetlive-api",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node dev.js",
-    "start": "node dev.js"
+    "dev": "node dev.js",            // Para correr local
+    "start": "node dev.js",          // (opcional) mismo que dev en local
+    "build": "echo \"no build\""     // Vercel no necesita build para /api
   },
   "dependencies": {
     "express": "^4.19.2",
     "cookie-parser": "^1.4.6",
     "pino-http": "^9.0.0",
-    "mongoose": "^8.5.0"
+    "mongoose": "^8.5.0",
+
+    "serverless-http": "^3.2.0",     // <— necesario en Vercel
+    "dotenv": "^16.4.5",
+    "pino": "^9.2.0",
+    "cors": "^2.8.5",
+    "csurf": "^1.11.0"
   }
 }
