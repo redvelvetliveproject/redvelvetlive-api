@@ -28,13 +28,19 @@ app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// CSRF en /api
+// CSRF (sólo afecta métodos que no son GET/HEAD/OPTIONS)
 mountCsrf(app, { basePath: '/api' });
 
-// Conexión a DB (con cache interno en connectDB para no reconectar en cada invocación)
+// DB (connectDB debe tener cache interna para serverless)
 await connectDB();
 
-// Rutas
+// --- Healthcheck JSON (antes del 404) ---
+app.get('/api/health', (req, res) => {
+  res.set('Content-Type', 'application/json; charset=utf-8');
+  res.status(200).json({ ok: true, status: 'healthy' });
+});
+
+// Rutas principales
 app.use('/api/v1', apiV1);
 app.use('/api', apiV1);
 app.use('/', sitemapPostsRouter);
@@ -62,9 +68,11 @@ app.use((req, res) => {
 app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
   const status = err.status || 500;
-  const msg = err.code === 'EBADCSRFTOKEN' ? 'CSRF token invalid' : (err.message || 'Internal error');
+  const msg =
+    err.code === 'EBADCSRFTOKEN'
+      ? 'CSRF token invalid'
+      : err.message || 'Internal error';
   res.status(status).json({ ok: false, error: msg });
 });
 
 export default app;
-
