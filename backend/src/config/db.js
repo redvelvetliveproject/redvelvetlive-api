@@ -1,22 +1,23 @@
+// backend/src/config/db.js
 import mongoose from 'mongoose';
 
-let cached = global._mongoose || { conn: null, promise: null };
-global._mongoose = cached;
+let cached = global._mongooseConn;
 
 export default async function connectDB() {
-  if (cached.conn) return cached.conn;
-
-  if (!cached.promise) {
-    const uri = process.env.MONGO_URI;
-    const dbName = process.env.MONGO_DB_NAME || 'redvelvetlive';
-    if (!uri) throw new Error('MONGO_URI not set');
-    cached.promise = mongoose.connect(uri, {
-      dbName,
-      autoIndex: true,
-      bufferCommands: false,
-    }).then((m) => m);
+  if (cached && (cached.connection?.readyState === 1 || cached.connection?.readyState === 2)) {
+    return cached;
+  }
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    console.warn('MONGO_URI not set, skipping DB connection');
+    return null;
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  const conn = await mongoose.connect(uri, {
+    maxPoolSize: 5,
+    serverSelectionTimeoutMS: 5000,
+  });
+
+  global._mongooseConn = { connection: conn.connection };
+  return global._mongooseConn;
 }
