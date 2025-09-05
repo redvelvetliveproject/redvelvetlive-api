@@ -49,3 +49,6 @@ app.use((err, req, res, _next) => {
 });
 
 export default app;
+import livepeerRoutes from './routes/livepeer.js';
+app.use('/api/livepeer', livepeerRoutes);
+
