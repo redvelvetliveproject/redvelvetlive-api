@@ -1,23 +1,18 @@
 // backend/src/config/db.js
-import mongoose from 'mongoose';
-
-let cached = global._mongooseConn;
+let connected = false;
 
 export default async function connectDB() {
-  if (cached && (cached.connection?.readyState === 1 || cached.connection?.readyState === 2)) {
-    return cached;
-  }
+  // No te frena si no hay MONGO_URI; evita 500 en serverless
   const uri = process.env.MONGO_URI;
   if (!uri) {
-    console.warn('MONGO_URI not set, skipping DB connection');
-    return null;
+    console.log('MONGO_URI not set - skipping DB connection.');
+    return;
   }
+  if (connected) return;
 
-  const conn = await mongoose.connect(uri, {
-    maxPoolSize: 5,
-    serverSelectionTimeoutMS: 5000,
-  });
-
-  global._mongooseConn = { connection: conn.connection };
-  return global._mongooseConn;
+  // Cargas mongoose solo si es necesario
+  const mongoose = (await import('mongoose')).default;
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+  connected = true;
+  console.log('MongoDB connected');
 }
