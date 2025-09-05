@@ -28,15 +28,27 @@ app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// CSRF (sólo afecta métodos que no son GET/HEAD/OPTIONS)
-mountCsrf(app, { basePath: '/api' });
+// 🔹 EXCLUIMOS healthcheck de CSRF
+mountCsrf(app, { basePath: '/api', ignorePaths: ['/api/health'] });
 
-// DB (connectDB debe tener cache interna para serverless)
-await connectDB();
+// ✅ Conexión diferida (solo si no está conectada)
+let isDBConnected = false;
+app.use(async (req, res, next) => {
+  if (!isDBConnected) {
+    try {
+      await connectDB();
+      isDBConnected = true;
+    } catch (err) {
+      console.error('❌ Error conectando a MongoDB:', err.message);
+      return res.status(500).json({ ok: false, error: 'DB connection failed' });
+    }
+  }
+  next();
+});
 
-// --- Healthcheck JSON (antes del 404) ---
+// Healthcheck
 app.get('/api/health', (req, res) => {
-  res.set('Content-Type', 'application/json; charset=utf-8');
+  res.set('Content-Type', 'application/json');
   res.status(200).json({ ok: true, status: 'healthy' });
 });
 
@@ -45,7 +57,7 @@ app.use('/api/v1', apiV1);
 app.use('/api', apiV1);
 app.use('/', sitemapPostsRouter);
 
-// Alias rápido
+// Perfil de usuario
 app.get('/api/users/profile', auth, async (req, res) => {
   const user = await User.findById(req.user.id).lean();
   if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
@@ -64,7 +76,7 @@ app.use((req, res) => {
   res.status(404).json({ ok: false, error: 'Not found' });
 });
 
-// Errores
+// Errores generales
 app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
   const status = err.status || 500;
