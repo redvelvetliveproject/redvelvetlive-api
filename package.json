@@ -4,20 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node dev.js",            // Para correr local
-    "start": "node dev.js",          // (opcional) mismo que dev en local
-    "build": "echo \"no build\""     // Vercel no necesita build para /api
+    "dev": "node dev.js",
+    "start": "node dev.js",
+    "build": "echo \"no build step\""
   },
   "dependencies": {
     "express": "^4.19.2",
     "cookie-parser": "^1.4.6",
+    "pino": "^9.0.0",
     "pino-http": "^9.0.0",
     "mongoose": "^8.5.0",
-
-    "serverless-http": "^3.2.0",     // <— necesario en Vercel
     "dotenv": "^16.4.5",
-    "pino": "^9.2.0",
     "cors": "^2.8.5",
-    "csurf": "^1.11.0"
+    "csurf": "^1.11.0",
+    "serverless-http": "^3.2.0"
   }
 }
