@@ -1,9 +1,5 @@
 // api/index.js
 import serverless from 'serverless-http';
-import app from '../backend/src/app.js'; // tu app de Express
+import app from '../backend/src/app.js';
 
-// Export default para @vercel/node
-export default async function handler(req, res) {
-  const wrapped = serverless(app);
-  return wrapped(req, res);
-}
+export default serverless(app);
