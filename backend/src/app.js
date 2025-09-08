@@ -5,43 +5,49 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
 
-import ping from './routes/ping.js';
 import connectDB from './config/db.js';
+import ping from './routes/ping.js';
+import livepeerRoutes from './routes/livepeer.js';
+import paymentsRouter from './routes/payments.js';
+import cronRouter from './routes/cron.js';
 
 const app = express();
 app.set('trust proxy', 1);
 
-// Middlewares básicos y seguros
+// Middlewares básicos
 app.use(pinoHttp());
 app.use(cors({ origin: '*', credentials: false }));
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// Healthcheck (¡sin tocar DB!)
-app.get('/api/health', (req, res) => {
+// Healthcheck (NO toca DB)
+app.get('/api/health', (_req, res) => {
   res.status(200).json({ ok: true, status: 'healthy', ts: new Date().toISOString() });
 });
 
 // Rutas mínimas
 app.use('/api', ping);
 
-// Conexión a DB (opcional y tolerante a errores)
-// No bloquea el health; si falla, lo deja registrado y la API sigue viva.
+// Conexión a DB (tolerante a errores). No bloquea el health.
 try {
   await connectDB();
 } catch (e) {
-  req?.log?.error?.(e, 'DB connect error'); // si no hay req, no pasa nada
-  // eslint-disable-next-line no-console
+  // No usar req aquí (no existe fuera de un handler)
   console.error('DB connect error:', e?.message || e);
 }
+
+// Rutas de negocio (después de intentar DB y antes del 404)
+app.use('/api/livepeer', livepeerRoutes);
+app.use('/api/payments', paymentsRouter);
+app.use('/api/cron', cronRouter);
 
 // 404
 app.use((req, res) => {
   res.status(404).json({ ok: false, error: 'Not found' });
 });
 
-// Manejo de errores
+// Errores
 app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
   const status = err.status || 500;
@@ -49,6 +55,4 @@ app.use((err, req, res, _next) => {
 });
 
 export default app;
-import livepeerRoutes from './routes/livepeer.js';
-app.use('/api/livepeer', livepeerRoutes);
 
