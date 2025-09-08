@@ -14,42 +14,48 @@ import cronRouter from './routes/cron.js';
 const app = express();
 app.set('trust proxy', 1);
 
-// Middlewares básicos
+// -------- Middlewares base
+const allowOrigin = process.env.CORS_ORIGIN || '*';
 app.use(pinoHttp());
-app.use(cors({ origin: '*', credentials: false }));
+app.use(cors({ origin: allowOrigin, credentials: false }));
+app.options('*', cors()); // preflight
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// Healthcheck (NO toca DB)
+// -------- Health (NO toca DB)
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({ ok: true, status: 'healthy', ts: new Date().toISOString() });
+  res.status(200).json({
+    ok: true,
+    status: 'healthy',
+    ts: new Date().toISOString(),
+  });
 });
 
-// Rutas mínimas
+// -------- Rutas mínimas
 app.use('/api', ping);
 
-// Conexión a DB (tolerante a errores). No bloquea el health.
+// -------- Conexión DB (tolerante a fallos; no bloquea health)
 try {
   await connectDB();
 } catch (e) {
-  // No usar req aquí (no existe fuera de un handler)
+  // eslint-disable-next-line no-console
   console.error('DB connect error:', e?.message || e);
 }
 
-// Rutas de negocio (después de intentar DB y antes del 404)
+// -------- Rutas de negocio
 app.use('/api/livepeer', livepeerRoutes);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/cron', cronRouter);
 
-// 404
+// -------- 404
 app.use((req, res) => {
   res.status(404).json({ ok: false, error: 'Not found' });
 });
 
-// Errores
+// -------- Manejo de errores
 app.use((err, req, res, _next) => {
-  req.log?.error({ err }, 'Unhandled error');
+  req?.log?.error?.({ err }, 'Unhandled error');
   const status = err.status || 500;
   res.status(status).json({ ok: false, error: err.message || 'Internal error' });
 });
