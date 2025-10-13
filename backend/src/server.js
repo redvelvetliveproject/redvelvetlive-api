@@ -14,6 +14,9 @@ import connectDB from "./config/db.js";
 import modelsPublicRoutes from "./routes/models.public.routes.js";
 import paymentsRoutes from "./routes/payments.routes.js";
 
+// 🕒 Cron de pagos (verificación on-chain automática)
+import { startPaymentsCron } from "./jobs/payments.cron.js";
+
 // ⚙️ Configuración base
 dotenv.config();
 const app = express();
@@ -46,7 +49,7 @@ connectDB()
 // 🌐 Rutas principales
 // =========================
 
-// Health check (para monitoreo en producción)
+// 🩺 Health check (para monitoreo y uptime)
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -57,10 +60,10 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Modelos públicos
+// 👩‍💻 Modelos públicos (listado, perfil, live)
 app.use("/api/models", modelsPublicRoutes);
 
-// Pagos y trazabilidad blockchain
+// 💰 Pagos y trazabilidad blockchain
 app.use("/api/payments", paymentsRoutes);
 
 // =========================
@@ -83,6 +86,11 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🩺 Health check: ${process.env.PUBLIC_URL || "http://localhost:" + PORT}/api/health`);
   console.log(`🌐 Entorno: ${process.env.NODE_ENV}`);
 });
+
+// =========================
+// 🔁 CRON de verificación automática de pagos
+// =========================
+startPaymentsCron();
 
 export default app;
 
