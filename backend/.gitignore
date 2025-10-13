@@ -1,0 +1,77 @@
+# ============================================
+# 🌹 REDVELVETLIVE — .gitignore versión PRO
+# ============================================
+
+# 🔐 Archivos sensibles
+.env
+.env.local
+.env.production
+.env.development
+
+# 🔑 Claves privadas o configuraciones
+*.pem
+*.key
+*.crt
+*.p12
+*.pem
+*.cert
+*.secret
+
+# 🧠 Archivos temporales y dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ⚙️ Compilaciones o builds
+dist/
+build/
+.cache/
+.next/
+out/
+tmp/
+temp/
+logs/
+coverage/
+
+# 🧾 Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# 🧰 IDEs y editores
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# 🚀 Archivos generados por Vercel o Hosting
+.vercel
+.vercel_build_output
+.now/
+*.vercel
+
+# 🪙 Archivos Web3 temporales
+*.sol.json
+*.abi.json
+*.bytecode.json
+*.flattened.sol
+
+# 🗄️ Backups o reportes
+*.bak
+*.log
+*.csv
+*.zip
+*.rar
+*.tar.gz
+*.tgz
+
+# 🧪 Test y datos locales
+test-results/
+__tests__/
+__mocks__/
+coverage/
+local_data/
+cache/
