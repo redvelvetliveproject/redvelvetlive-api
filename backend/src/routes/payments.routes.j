@@ -1,91 +1,48 @@
 /**
  * 💰 RedVelvetLive — Rutas de Pagos y Transacciones (PRO FINAL)
- * ---------------------------------------------------------------
- * Módulo para registrar, consultar y auditar tips, retiros y distribuciones.
- * Soporta ONECOP y USDT sobre Binance Smart Chain (Mainnet / Testnet).
+ * -----------------------------------------------------------------
+ * Módulo unificado que combina endpoints REST + Web3:
+ *  - Registro de tips, retiros y distribuciones.
+ *  - Verificación blockchain (BSC, ONECOP, USDT).
+ *  - Auditoría completa y consulta de balances.
  */
 
 import express from "express";
 import PaymentOrder from "../models/PaymentOrder.js";
 import Model from "../models/Model.js";
+import {
+  createPayment,
+  verifyPayment,
+  auditPayment,
+  getBalance,
+} from "../controllers/payments.controller.js";
 import { validateObjectId } from "../services/validators.js";
 
 const router = express.Router();
 
-/* ================================
-   1️⃣ Crear nueva orden de pago
-   ================================ */
-router.post("/create", async (req, res) => {
-  try {
-    const {
-      modelId,
-      amount,
-      currency = "ONECOP",
-      destinationWallet,
-      txHash = "",
-      type = "TIP",
-      note = "",
-    } = req.body;
+/* ======================================================
+   🪙 1️⃣ Crear nueva orden (controlador PRO)
+   ====================================================== */
+router.post("/create", createPayment);
 
-    // 🧩 Validaciones iniciales
-    if (!modelId || !amount || !destinationWallet)
-      return res.status(400).json({
-        success: false,
-        message: "Faltan datos obligatorios: modelId, amount o destinationWallet.",
-      });
+/* ======================================================
+   🔗 2️⃣ Verificar transacción blockchain (BSC)
+   ====================================================== */
+router.post("/verify", verifyPayment);
 
-    if (!validateObjectId(modelId))
-      return res.status(400).json({
-        success: false,
-        message: "ID de modelo inválido.",
-      });
+/* ======================================================
+   🧾 3️⃣ Auditoría completa de hash
+   ====================================================== */
+router.get("/audit/:txHash", auditPayment);
 
-    if (!/^0x[a-fA-F0-9]{40}$/.test(destinationWallet))
-      return res.status(400).json({
-        success: false,
-        message: "Dirección de wallet inválida.",
-      });
+/* ======================================================
+   💰 4️⃣ Consultar balance on-chain de una wallet
+   ====================================================== */
+router.get("/balance/:wallet", getBalance);
 
-    // 🧠 Verificar existencia del modelo
-    const model = await Model.findById(modelId).select("name wallet country");
-    if (!model)
-      return res.status(404).json({
-        success: false,
-        message: "Modelo no encontrado.",
-      });
-
-    // 💾 Crear la orden en base de datos
-    const order = new PaymentOrder({
-      modelId,
-      amount,
-      currency,
-      destinationWallet,
-      txHash,
-      type,
-      metadata: { note },
-      status: txHash ? "CONFIRMED" : "PENDING",
-    });
-
-    await order.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Orden de pago creada exitosamente.",
-      order,
-    });
-  } catch (error) {
-    console.error("❌ Error al crear orden:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error interno al registrar la orden.",
-      error: error.message,
-    });
-  }
-});
-
-/* ================================
-   2️⃣ Listar todas las órdenes
-   ================================ */
+/* ======================================================
+   📋 5️⃣ Listar órdenes (paginado y filtrado)
+   ====================================================== */
 router.get("/", async (req, res) => {
   try {
     const { status, type, currency, limit = 50, skip = 0 } = req.query;
@@ -121,9 +78,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-/* ================================
-   3️⃣ Consultar una orden específica
-   ================================ */
+/* ======================================================
+   🔍 6️⃣ Consultar una orden específica
+   ====================================================== */
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -144,14 +101,11 @@ router.get("/:id", async (req, res) => {
         message: "Orden no encontrada.",
       });
 
-    // 🔗 Genera enlace de auditoría
-    const explorerBase = "https://bscscan.com/tx/";
-    order.txExplorer = order.txHash ? `${explorerBase}${order.txHash}` : null;
+    order.txExplorer = order.txHash
+      ? `https://bscscan.com/tx/${order.txHash}`
+      : null;
 
-    res.json({
-      success: true,
-      order,
-    });
+    res.json({ success: true, order });
   } catch (error) {
     console.error("❌ Error al obtener orden:", error);
     res.status(500).json({
@@ -162,26 +116,22 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-/* ================================
-   4️⃣ Actualizar estado o hash (admin)
-   ================================ */
+/* ======================================================
+   🔁 7️⃣ Actualizar estado o hash (uso interno / admin)
+   ====================================================== */
 router.patch("/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
     const { status, txHash, note } = req.body;
 
     if (!validateObjectId(id))
-      return res.status(400).json({
-        success: false,
-        message: "ID inválido.",
-      });
+      return res.status(400).json({ success: false, message: "ID inválido." });
 
     const order = await PaymentOrder.findById(id);
     if (!order)
-      return res.status(404).json({
-        success: false,
-        message: "Orden no encontrada.",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Orden no encontrada." });
 
     if (status) order.status = status.toUpperCase();
     if (txHash) {
@@ -208,17 +158,16 @@ router.patch("/:id/status", async (req, res) => {
   }
 });
 
-/* ================================
-   5️⃣ Listar órdenes de una modelo
-   ================================ */
+/* ======================================================
+   👩‍💻 8️⃣ Listar órdenes de una modelo específica
+   ====================================================== */
 router.get("/model/:modelId", async (req, res) => {
   try {
     const { modelId } = req.params;
     if (!validateObjectId(modelId))
-      return res.status(400).json({
-        success: false,
-        message: "ID de modelo inválido.",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "ID de modelo inválido." });
 
     const orders = await PaymentOrder.find({ modelId })
       .sort({ createdAt: -1 })
@@ -241,3 +190,4 @@ router.get("/model/:modelId", async (req, res) => {
 });
 
 export default router;
+
