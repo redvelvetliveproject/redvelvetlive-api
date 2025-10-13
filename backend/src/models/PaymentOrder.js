@@ -1,25 +1,70 @@
 // backend/src/models/PaymentOrder.js
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const PaymentOrderSchema = new mongoose.Schema(
+const paymentOrderSchema = new mongoose.Schema(
   {
-    orderId: { type: String, index: true, unique: true },
-    token: { type: String, enum: ['USDT', 'ONECOP'], required: true },
-    tokenContract: { type: String, required: true },
-    treasury: { type: String, required: true },
-    amountWei: { type: String, required: true }, // string decimal (wei)
-    from: { type: String }, // opcional (si pides dirección del pagador)
-    status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending', index: true },
+    // 📦 ID del modelo o usuario receptor
+    modelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Model",
+      required: true,
+    },
 
-    // on-chain data
-    txHash: { type: String },
-    txBlockNumber: { type: Number },
-    seenConfirmations: { type: Number, default: 0 },
+    // 💰 Monto de la operación
+    amount: { type: Number, required: true },
 
-    // metadatos
-    meta: { type: Object },
+    // 💱 Moneda utilizada (ONECOP / USDT)
+    currency: {
+      type: String,
+      enum: ["ONECOP", "USDT"],
+      default: "ONECOP",
+    },
+
+    // 🔗 Dirección wallet de destino (BSC)
+    destinationWallet: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    // 🧾 Hash de transacción (para verificar en BscScan)
+    txHash: { type: String, default: "" },
+
+    // 📅 Tipo de operación
+    type: {
+      type: String,
+      enum: ["TIP", "WITHDRAWAL", "DISTRIBUTION", "BONUS"],
+      default: "TIP",
+    },
+
+    // ⚙️ Estado actual de la orden
+    status: {
+      type: String,
+      enum: ["PENDING", "PROCESSING", "CONFIRMED", "FAILED", "CANCELLED"],
+      default: "PENDING",
+    },
+
+    // 🧠 Detalles adicionales o notas internas
+    metadata: {
+      note: { type: String, default: "" },
+      adminActionBy: { type: String, default: "" },
+      txExplorer: { type: String, default: "" },
+    },
+
+    // 📆 Control de tiempo
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-export default mongoose.models.PaymentOrder || mongoose.model('PaymentOrder', PaymentOrderSchema);
+// ✅ Pre-save hook: genera enlace automático a BscScan
+paymentOrderSchema.pre("save", function (next) {
+  if (this.txHash && !this.metadata.txExplorer) {
+    this.metadata.txExplorer = `https://bscscan.com/tx/${this.txHash}`;
+  }
+  this.updatedAt = Date.now();
+  next();
+});
+
+export default mongoose.model("PaymentOrder", paymentOrderSchema);
