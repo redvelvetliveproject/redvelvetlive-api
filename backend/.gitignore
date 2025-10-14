@@ -1,30 +1,32 @@
 # ============================================
-# 🌹 REDVELVETLIVE — .gitignore versión PRO
+# 🌹 REDVELVETLIVE — .gitignore (Versión PRO FINAL)
 # ============================================
 
-# 🔐 Archivos sensibles
+# 🔐 Archivos de entorno y configuración
 .env
-.env.local
-.env.production
-.env.development
+.env.*
+!.env.example
 
-# 🔑 Claves privadas o configuraciones
+# 🧠 Claves privadas o certificados
 *.pem
 *.key
 *.crt
 *.p12
-*.pem
 *.cert
 *.secret
+*.keystore
+*.jks
 
-# 🧠 Archivos temporales y dependencias
+# 🧩 Dependencias y módulos
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+package-lock.json
+yarn.lock
 
-# ⚙️ Compilaciones o builds
+# ⚙️ Builds y cachés
 dist/
 build/
 .cache/
@@ -34,6 +36,8 @@ tmp/
 temp/
 logs/
 coverage/
+.eslintcache
+*.cache.json
 
 # 🧾 Archivos del sistema
 .DS_Store
@@ -46,20 +50,27 @@ Thumbs.db
 .idea/
 *.sublime-workspace
 *.sublime-project
+*.iml
 
-# 🚀 Archivos generados por Vercel o Hosting
-.vercel
-.vercel_build_output
+# 🚀 Despliegues en Hosting (Vercel / Netlify / Hostinger / Now)
+.vercel/
+.vercel_build_output/
 .now/
+.netlify/
 *.vercel
+*.env.local
+*.env.production.local
 
-# 🪙 Archivos Web3 temporales
-*.sol.json
-*.abi.json
-*.bytecode.json
+# 🪙 Archivos Web3 / Contratos
+contracts/**/*.sol.json
+contracts/**/*.abi.json
+contracts/**/*.bytecode.json
+contracts/**/*.flattened.sol
+flattened/
 *.flattened.sol
+flattened-contracts/
 
-# 🗄️ Backups o reportes
+# 🗄️ Copias de seguridad o reportes
 *.bak
 *.log
 *.csv
@@ -67,11 +78,56 @@ Thumbs.db
 *.rar
 *.tar.gz
 *.tgz
+*.bak.json
 
-# 🧪 Test y datos locales
+# 🧪 Tests y datos temporales
 test-results/
 __tests__/
 __mocks__/
 coverage/
 local_data/
 cache/
+debug/
+sandbox/
+__snapshots__/
+
+# 📦 Archivos de dependencias internas
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 🧬 Archivos sensibles del backend (tokens, claves, dumps)
+*.dump
+*.dump.json
+*.dump.sql
+*.mongodb
+mongo-dumps/
+backups/
+uploads/
+private_uploads/
+tokens/
+sessions/
+
+# 🌐 Frontend compilado (si se genera dentro del backend)
+frontend/build/
+frontend/dist/
+frontend/.next/
+frontend/.vercel/
+
+# 🧱 Archivos temporales generados por PM2 o procesos
+pids/
+*.pid
+*.seed
+*.seed.json
+
+# ✅ Excepciones seguras (para plantillas)
+!.env.example
+!.gitignore
+!.prettierrc
+!.eslintrc
+!.editorconfig
+
+# ============================================
+# 🔒 FIN DEL ARCHIVO - Seguridad Nivel Producción
+# ============================================
+
