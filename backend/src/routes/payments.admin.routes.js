@@ -1,186 +1,192 @@
 // ============================================
-// 💰 RedVelvetLive — Rutas Administrativas de Pagos (PRO FINAL)
+// 👩‍💻 RedVelvetLive — Rutas Administrativas de Modelos (PRO FINAL)
 // ============================================
 //
-// Controla todas las funciones del panel administrativo:
-//   ✅ Listar órdenes con filtros
-//   ✅ Ejecutar manualmente el cron on-chain
-//   ✅ Auditar una transacción específica
-//   ✅ Actualizar estado manualmente
+// Controla desde el panel:
+//   ✅ Listar modelos activos/inactivos
+//   ✅ Cambiar estado (activar/desactivar/banear)
+//   ✅ Destacar o marcar como embajadora
+//   ✅ Auditoría opcional en consola (logs)
 //
-// 🔒 Todas las rutas están protegidas con adminAuth.js
+// Protegido con middleware adminAuth.js
 // ============================================
 
 import express from "express";
-import PaymentOrder from "../models/PaymentOrder.js";
+import ModelUser from "../models/ModelUser.js"; // Mongoose model de los modelos
 import { validateObjectId } from "../services/validators.js";
-import { verifyTransaction, auditTransaction } from "../services/web3.utils.js";
-import { runPaymentsCronJob } from "../jobs/payments.cron.js";
 
 const router = express.Router();
 
 /* ==========================================================
-   ✅ 1️⃣ Listar órdenes de pago (GET /api/admin/payments/orders)
+   ✅ 1️⃣ Listar modelos activos/inactivos (GET /api/admin/models)
    ========================================================== */
-router.get("/orders", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { status, type, currency, limit = 50, skip = 0 } = req.query;
+    const { status, limit = 50, skip = 0, search = "" } = req.query;
     const query = {};
 
+    // 🔎 Filtros avanzados
     if (status) query.status = status.toUpperCase();
-    if (type) query.type = type.toUpperCase();
-    if (currency) query.currency = currency.toUpperCase();
+    if (search)
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { country: { $regex: search, $options: "i" } },
+        { wallet: { $regex: search, $options: "i" } },
+      ];
 
-    const [orders, total] = await Promise.all([
-      PaymentOrder.find(query)
+    const [models, total] = await Promise.all([
+      ModelUser.find(query)
         .sort({ createdAt: -1 })
         .skip(Number(skip))
         .limit(Number(limit))
-        .populate("modelId", "name wallet country")
+        .select(
+          "name country wallet status featured ambassador createdAt updatedAt"
+        )
         .lean(),
-      PaymentOrder.countDocuments(query),
+      ModelUser.countDocuments(query),
     ]);
 
     res.status(200).json({
       success: true,
       total,
-      count: orders.length,
-      data: orders,
+      count: models.length,
+      data: models,
       timestamp: new Date(),
     });
   } catch (error) {
-    console.error("❌ Error en /admin/payments/orders:", error);
+    console.error("❌ Error listando modelos:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno al listar órdenes.",
+      message: "Error interno al listar modelos.",
       error: error.message,
     });
   }
 });
 
 /* ==========================================================
-   ✅ 2️⃣ Ejecutar manualmente el cron (POST /cron/run)
+   ✅ 2️⃣ Actualizar estado del modelo (PATCH /:id/status)
    ========================================================== */
-router.post("/cron/run", async (req, res) => {
-  try {
-    const start = Date.now();
-    const result = await runPaymentsCronJob();
-
-    res.status(200).json({
-      success: true,
-      message: "Cron ejecutado correctamente.",
-      result,
-      durationMs: Date.now() - start,
-      executedAt: new Date(),
-    });
-  } catch (error) {
-    console.error("❌ Error ejecutando cron manual:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error ejecutando el cron manual.",
-      error: error.message,
-    });
-  }
-});
-
-/* ==========================================================
-   ✅ 3️⃣ Auditar transacción (GET /audit/:txHash)
-   ========================================================== */
-router.get("/audit/:txHash", async (req, res) => {
-  try {
-    const { txHash } = req.params;
-    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
-      return res.status(400).json({
-        success: false,
-        message: "Hash de transacción inválido.",
-      });
-    }
-
-    const audit = await auditTransaction(txHash);
-    const verified = audit?.status === "success";
-
-    res.status(200).json({
-      success: true,
-      verified,
-      audit,
-      explorer: `https://bscscan.com/tx/${txHash}`,
-    });
-  } catch (error) {
-    console.error("❌ Error en /audit:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error interno auditando la transacción.",
-      error: error.message,
-    });
-  }
-});
-
-/* ==========================================================
-   ✅ 4️⃣ Actualizar estado (PATCH /orders/:id/status)
-   ========================================================== */
-router.patch("/orders/:id/status", async (req, res) => {
+router.patch("/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note } = req.body;
+    const { status } = req.body;
 
     if (!validateObjectId(id)) {
       return res.status(400).json({
         success: false,
-        message: "ID de orden inválido.",
+        message: "ID de modelo inválido.",
       });
     }
 
-    const order = await PaymentOrder.findById(id);
-    if (!order) {
+    const model = await ModelUser.findById(id);
+    if (!model) {
       return res.status(404).json({
         success: false,
-        message: "Orden no encontrada.",
+        message: "Modelo no encontrado.",
       });
     }
 
-    if (status) order.status = status.toUpperCase();
-    if (note) order.metadata.note = note;
-    order.updatedAt = new Date();
-    await order.save();
+    // 🟢 Estados posibles: ACTIVE, INACTIVE, BANNED
+    const newStatus = (status || "INACTIVE").toUpperCase();
+    model.status = newStatus;
+    model.updatedAt = new Date();
+    await model.save();
+
+    console.log(`🧩 Estado modelo actualizado: ${model.name} → ${newStatus}`);
 
     res.status(200).json({
       success: true,
-      message: "Orden actualizada correctamente.",
-      order,
+      message: `Estado del modelo actualizado a ${newStatus}.`,
+      model,
     });
   } catch (error) {
-    console.error("❌ Error actualizando orden:", error);
+    console.error("❌ Error actualizando estado del modelo:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno actualizando la orden.",
+      message: "Error interno al actualizar el estado.",
       error: error.message,
     });
   }
 });
 
 /* ==========================================================
-   ✅ 5️⃣ Verificar transacción on-chain (POST /verify)
+   ✅ 3️⃣ Destacar modelo o marcar embajadora (PATCH /:id/feature)
    ========================================================== */
-router.post("/verify", async (req, res) => {
+router.patch("/:id/feature", async (req, res) => {
   try {
-    const { txHash } = req.body;
-    if (!txHash)
+    const { id } = req.params;
+    const { featured = false, ambassador = false } = req.body;
+
+    if (!validateObjectId(id)) {
       return res.status(400).json({
         success: false,
-        message: "txHash requerido.",
+        message: "ID de modelo inválido.",
       });
+    }
 
-    const verified = await verifyTransaction(txHash);
+    const model = await ModelUser.findById(id);
+    if (!model) {
+      return res.status(404).json({
+        success: false,
+        message: "Modelo no encontrado.",
+      });
+    }
+
+    model.featured = !!featured;
+    model.ambassador = !!ambassador;
+    model.updatedAt = new Date();
+    await model.save();
+
+    console.log(
+      `⭐ Modelo actualizado: ${model.name} → Featured: ${model.featured}, Ambassador: ${model.ambassador}`
+    );
+
     res.status(200).json({
       success: true,
-      verified,
-      explorer: `https://bscscan.com/tx/${txHash}`,
+      message: "Modelo actualizado correctamente.",
+      model,
     });
   } catch (error) {
-    console.error("❌ Error verificando transacción:", error);
+    console.error("❌ Error destacando modelo:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno verificando transacción.",
+      message: "Error interno destacando modelo.",
+      error: error.message,
+    });
+  }
+});
+
+/* ==========================================================
+   ✅ 4️⃣ Eliminar modelo (DELETE /:id)
+   ========================================================== */
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!validateObjectId(id))
+      return res.status(400).json({
+        success: false,
+        message: "ID de modelo inválido.",
+      });
+
+    const model = await ModelUser.findByIdAndDelete(id);
+    if (!model)
+      return res.status(404).json({
+        success: false,
+        message: "Modelo no encontrado o ya eliminado.",
+      });
+
+    console.log(`🗑️ Modelo eliminado: ${model.name} (${model.wallet})`);
+
+    res.status(200).json({
+      success: true,
+      message: "Modelo eliminado correctamente.",
+      model,
+    });
+  } catch (error) {
+    console.error("❌ Error eliminando modelo:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error interno eliminando el modelo.",
       error: error.message,
     });
   }
