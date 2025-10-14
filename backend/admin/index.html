@@ -1,360 +1,133 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>RedVelvetLive · Panel Admin</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{
-      --bg:#0f1115;--panel:#151822;--soft:#191c27;--text:#e9ecf1;--muted:#9aa3b2;--brand:#e31221;--ok:#16a34a;--warn:#f59e0b;--err:#ef4444;--br:14px;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--text);background:linear-gradient(180deg,#0b0c10,#10131a)}
-    .container{max-width:1100px;margin:auto;padding:24px}
-    .card{background:var(--panel);border:1px solid #232633;border-radius:var(--br);box-shadow:0 10px 24px rgba(0,0,0,.25)}
-    h1{font-size:24px;margin:0 0 12px}
-    h2{font-size:18px;margin:0 0 8px}
-    .grid{display:grid;gap:16px}
-    .grid-2{grid-template-columns:1fr 1fr}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    input,select,button{border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;color:var(--text);padding:10px 12px}
-    input::placeholder{color:#6b7280}
-    button{background:var(--brand);border-color:var(--brand);font-weight:700;cursor:pointer}
-    button.secondary{background:#1f2431;border-color:#2a2e3b}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:10px;border-bottom:1px solid #202433}
-    th{color:#c3c9d4;text-align:left;background:var(--soft);position:sticky;top:0}
-    .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#0e1118;border:1px solid #262a36;border-radius:8px;padding:2px 6px}
-    .muted{color:var(--muted)}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px}
-    .b-ok{background:#0f2b18;color:#6df0a7;border:1px solid #1a6a43}
-    .b-warn{background:#2b230f;color:#ffd27a;border:1px solid #6a531a}
-    .b-err{background:#2b1111;color:#ff9aaa;border:1px solid #6a1a1a}
-    .b-pending{background:#1a2030;color:#9ab8ff;border:1px solid #334a85}
-    .right{display:flex;justify-content:flex-end;gap:10px}
-    .toast{position:fixed;right:20px;bottom:-100px;transition:.35s;opacity:0;min-width:260px;max-width:360px;padding:12px 16px;border-radius:10px;color:#fff;font-weight:700;box-shadow:0 10px 28px rgba(0,0,0,.5);z-index:9999}
-    .toast.show{bottom:20px;opacity:1}
-    .t-ok{background:var(--ok)} .t-err{background:var(--err)} .t-info{background:#2563eb}
-    .pill{display:inline-flex;align-items:center;gap:6px;background:#0e1118;border:1px solid #2a2e3b;border-radius:999px;padding:6px 10px}
-    .footer{margin-top:18px;color:#7c8597}
-    .hr{height:1px;background:#212436;margin:14px 0}
-    .code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b0e15;border:1px solid #23263a;border-radius:8px;padding:8px}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="card" style="padding:18px">
-      <h1>🌹 RedVelvetLive — Panel Administrativo</h1>
-      <p class="muted">Gestión de pagos, auditorías on-chain y cron de verificación.</p>
-      <div class="hr"></div>
+# ============================================
+# 🌹 REDVELVETLIVE — .gitignore (Versión PRO FINAL)
+# ============================================
 
-      <!-- Configuración -->
-      <div class="grid grid-2">
-        <div class="card" style="padding:16px">
-          <h2>🔐 Autenticación</h2>
-          <div class="row">
-            <input id="adminKey" type="password" placeholder="x-admin-key (ADMIN_SECRET_KEY)" style="flex:1" />
-            <button id="saveKeyBtn">Guardar</button>
-          </div>
-          <p class="muted" style="margin-top:8px">Se guarda localmente en <span class="kbd">localStorage</span>.</p>
-        </div>
+# 🔐 Archivos de entorno y configuración
+.env
+.env.*
+!.env.example
 
-        <div class="card" style="padding:16px">
-          <h2>🌐 API Base</h2>
-          <div class="row">
-            <input id="apiBase" type="text" placeholder="https://api.redvelvetlive.com/api" style="flex:1" />
-            <button class="secondary" id="useLocal">Local</button>
-            <button id="saveApiBtn">Guardar</button>
-          </div>
-          <p class="muted" style="margin-top:8px">Se usará para todas las llamadas (models, payments, admin).</p>
-        </div>
-      </div>
+# 🧠 Claves privadas o certificados
+*.pem
+*.key
+*.crt
+*.p12
+*.cert
+*.secret
+*.keystore
+*.jks
 
-      <div class="hr"></div>
+# 🧩 Dependencias y módulos
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
 
-      <!-- Cron & Auditoría -->
-      <div class="grid grid-2">
-        <div class="card" style="padding:16px">
-          <h2>⏱️ Cron de verificación</h2>
-          <p class="muted">Fuerza una corrida del cron que valida órdenes PENDING/PROCESSING on-chain.</p>
-          <div class="row">
-            <button id="runCron">▶️ Ejecutar cron ahora</button>
-            <span class="pill"><span>Schedule:</span><code class="kbd" id="cronSpec">*/5 * * * *</code></span>
-          </div>
-          <div id="cronResult" class="code" style="margin-top:10px;display:none"></div>
-        </div>
+# ⚙️ Builds y cachés
+dist/
+build/
+.cache/
+.next/
+out/
+tmp/
+temp/
+logs/
+coverage/
+.eslintcache
+*.cache.json
 
-        <div class="card" style="padding:16px">
-          <h2>🧾 Auditoría de transacción</h2>
-          <div class="row">
-            <input id="txHash" type="text" placeholder="0x... tx hash" style="flex:1" />
-            <button id="auditBtn">Auditar</button>
-          </div>
-          <div id="auditBox" class="code" style="margin-top:10px;display:none"></div>
-        </div>
-      </div>
+# 🧾 Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
 
-      <div class="hr"></div>
+# 🧰 IDEs y editores
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.iml
 
-      <!-- Filtros / Buscador -->
-      <div class="card" style="padding:16px">
-        <h2>💰 Órdenes de Pago</h2>
-        <div class="row" style="margin-bottom:10px">
-          <select id="fStatus">
-            <option value="">Estado (todos)</option>
-            <option>PENDING</option><option>PROCESSING</option>
-            <option>CONFIRMED</option><option>FAILED</option><option>CANCELLED</option>
-          </select>
-          <select id="fType">
-            <option value="">Tipo (todos)</option>
-            <option>TIP</option><option>WITHDRAWAL</option><option>DISTRIBUTION</option><option>BONUS</option>
-          </select>
-          <select id="fCurrency">
-            <option value="">Moneda (todas)</option>
-            <option>ONECOP</option><option>USDT</option>
-          </select>
-          <input id="fLimit" type="number" min="1" value="25" style="width:120px" />
-          <button id="refreshBtn">🔄 Cargar</button>
-        </div>
+# 🚀 Despliegues en Hosting (Vercel / Netlify / Hostinger / Now)
+.vercel/
+.vercel_build_output/
+.now/
+.netlify/
+*.vercel
+*.env.local
+*.env.production.local
 
-        <div class="card" style="background:#0e1118;border:1px solid #23263a;overflow:auto;max-height:60vh">
-          <table id="ordersTable">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Modelo</th>
-                <th>Monto</th>
-                <th>Moneda</th>
-                <th>Tipo</th>
-                <th>Estado</th>
-                <th>Tx</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="ordersBody">
-              <tr><td colspan="8" class="muted">Sin datos…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+# 🪙 Archivos Web3 / Contratos
+contracts/**/*.sol.json
+contracts/**/*.abi.json
+contracts/**/*.bytecode.json
+contracts/**/*.flattened.sol
+flattened/
+*.flattened.sol
+flattened-contracts/
 
-      <div class="footer">
-        <p>Hecho con ❤️ por RedVelvetLive — Seguridad: header <span class="kbd">x-admin-key</span></p>
-      </div>
-    </div>
-  </div>
+# 🗄️ Copias de seguridad o reportes
+*.bak
+*.log
+*.csv
+*.zip
+*.rar
+*.tar.gz
+*.tgz
+*.bak.json
 
-  <div id="toast" class="toast">listo</div>
+# 🧪 Tests y datos temporales
+test-results/
+__tests__/
+__mocks__/
+coverage/
+local_data/
+cache/
+debug/
+sandbox/
+__snapshots__/
 
-  <script>
-    // ======= Helpers UI =======
-    const $ = (sel) => document.querySelector(sel);
-    const toastEl = $("#toast");
-    function toast(msg, type="t-info"){
-      toastEl.className = "toast " + type;
-      toastEl.textContent = msg;
-      requestAnimationFrame(() => {
-        toastEl.classList.add("show");
-        setTimeout(()=>toastEl.classList.remove("show"), 2600);
-      });
-    }
-    const fmt = (d) => new Date(d).toLocaleString();
+# 📦 Archivos de dependencias internas
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-    // ======= Estado persistente =======
-    const LS_KEY = "rvl_admin_key";
-    const LS_API = "rvl_api_base";
+# 🧬 Archivos sensibles del backend (tokens, claves, dumps)
+*.dump
+*.dump.json
+*.dump.sql
+*.mongodb
+mongo-dumps/
+backups/
+uploads/
+private_uploads/
+tokens/
+sessions/
 
-    const adminKeyInput = $("#adminKey");
-    const apiBaseInput = $("#apiBase");
-    const cronSpec = $("#cronSpec");
+# 🌐 Frontend compilado (si se genera dentro del backend)
+frontend/build/
+frontend/dist/
+frontend/.next/
+frontend/.vercel/
 
-    // Defaults
-    const DEF_API = location.origin.includes("localhost")
-      ? "http://localhost:4000/api"
-      : (location.origin + "/api");
+# 🧱 Archivos temporales generados por PM2 o procesos
+pids/
+*.pid
+*.seed
+*.seed.json
 
-    adminKeyInput.value = localStorage.getItem(LS_KEY) || "";
-    apiBaseInput.value = localStorage.getItem(LS_API) || DEF_API;
+# ✅ Excepciones seguras (para plantillas)
+!.env.example
+!.gitignore
+!.prettierrc
+!.eslintrc
+!.editorconfig
 
-    $("#saveKeyBtn").onclick = () => {
-      localStorage.setItem(LS_KEY, adminKeyInput.value.trim());
-      toast("Clave admin guardada", "t-ok");
-    };
-    $("#saveApiBtn").onclick = () => {
-      localStorage.setItem(LS_API, apiBaseInput.value.trim());
-      toast("API base guardada", "t-ok");
-    };
-    $("#useLocal").onclick = () => {
-      apiBaseInput.value = "http://localhost:4000/api";
-      localStorage.setItem(LS_API, apiBaseInput.value);
-      toast("API local aplicada", "t-ok");
-    };
+# ============================================
+# 🔒 FIN DEL ARCHIVO - Seguridad Nivel Producción
+# ============================================
 
-    function apiBase(){ return (localStorage.getItem(LS_API) || apiBaseInput.value || DEF_API).replace(/\/$/,""); }
-    function adminHeaders(){
-      const key = localStorage.getItem(LS_KEY) || adminKeyInput.value.trim();
-      return { "Content-Type":"application/json", "x-admin-key": key };
-    }
-
-    // ======= Cron =======
-    $("#runCron").onclick = async () => {
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/cron/run", {
-          method:"POST",
-          headers: adminHeaders(),
-        });
-        const data = await res.json();
-        $("#cronResult").style.display = "block";
-        $("#cronResult").textContent = JSON.stringify(data, null, 2);
-        if (data.success) toast("Cron ejecutado ✅", "t-ok"); else toast("Cron con errores", "t-err");
-      } catch (e){
-        toast("Error al ejecutar cron", "t-err");
-        console.error(e);
-      }
-    };
-
-    // ======= Auditoría tx =======
-    $("#auditBtn").onclick = async () => {
-      const tx = $("#txHash").value.trim();
-      if (!tx) return toast("Ingresa un txHash", "t-err");
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/audit/" + tx, {
-          headers: adminHeaders(),
-        });
-        const data = await res.json();
-        $("#auditBox").style.display = "block";
-        $("#auditBox").textContent = JSON.stringify(data, null, 2);
-        if (data.success) toast("Auditoría OK", "t-ok"); else toast("No verificada", "t-err");
-      } catch (e){
-        toast("Error auditando", "t-err");
-      }
-    };
-
-    // ======= Listado órdenes =======
-    const tbody = $("#ordersBody");
-    $("#refreshBtn").onclick = loadOrders;
-
-    async function loadOrders(){
-      tbody.innerHTML = `<tr><td colspan="8" class="muted">Cargando…</td></tr>`;
-      const qs = new URLSearchParams();
-      const st = $("#fStatus").value.trim();
-      const ty = $("#fType").value.trim();
-      const cu = $("#fCurrency").value.trim();
-      const lim = $("#fLimit").value || "25";
-      if (st) qs.set("status", st);
-      if (ty) qs.set("type", ty);
-      if (cu) qs.set("currency", cu);
-      qs.set("limit", lim);
-
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/orders?" + qs.toString(), {
-          headers: adminHeaders(),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Error");
-
-        if ((data.data || []).length === 0){
-          tbody.innerHTML = `<tr><td colspan="8" class="muted">Sin resultados.</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = "";
-        (data.data || []).forEach(row => {
-          const tr = document.createElement("tr");
-
-          const statusBadge = (()=> {
-            const s = (row.status||"").toUpperCase();
-            const map = {PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
-            return `<span class="badge ${map[s]||"b-pending"}">${s}</span>`;
-          })();
-
-          const txHtml = row.txHash
-            ? `<a href="https://bscscan.com/tx/${row.txHash}" target="_blank" class="kbd">${row.txHash.slice(0,10)}…</a>`
-            : `<span class="muted">—</span>`;
-
-          tr.innerHTML = `
-            <td>${fmt(row.createdAt)}</td>
-            <td>${row.modelId?.name || "—"}</td>
-            <td><b>${row.amount}</b></td>
-            <td>${row.currency}</td>
-            <td>${row.type}</td>
-            <td>${statusBadge}</td>
-            <td>${txHtml}</td>
-            <td class="right">
-              <button class="secondary" data-action="audit" data-hash="${row.txHash||""}" ${row.txHash?"":"disabled"}>Auditar</button>
-              <select data-status="${row._id}">
-                <option ${row.status==="PENDING"?"selected":""}>PENDING</option>
-                <option ${row.status==="PROCESSING"?"selected":""}>PROCESSING</option>
-                <option ${row.status==="CONFIRMED"?"selected":""}>CONFIRMED</option>
-                <option ${row.status==="FAILED"?"selected":""}>FAILED</option>
-                <option ${row.status==="CANCELLED"?"selected":""}>CANCELLED</option>
-              </select>
-              <button data-action="save" data-id="${row._id}">Guardar</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        // Delegación de eventos
-        tbody.onclick = async (e) => {
-          const b = e.target.closest("button");
-          if (!b) return;
-          const action = b.getAttribute("data-action");
-
-          if (action === "audit") {
-            const hash = b.getAttribute("data-hash");
-            if (!hash) return;
-            $("#txHash").value = hash;
-            $("#auditBtn").click();
-          }
-
-          if (action === "save") {
-            const id = b.getAttribute("data-id");
-            const sel = tbody.querySelector(`select[data-status="${id}"]`);
-            const status = sel?.value;
-            if (!status) return;
-            await updateStatus(id, status);
-          }
-        };
-
-      } catch (err){
-        console.error(err);
-        tbody.innerHTML = `<tr><td colspan="8" class="muted">Error cargando órdenes.</td></tr>`;
-        toast("Error cargando órdenes", "t-err");
-      }
-    }
-
-    async function updateStatus(id, status){
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/orders/" + id + "/status", {
-          method: "PATCH",
-          headers: adminHeaders(),
-          body: JSON.stringify({ status })
-        });
-        const data = await res.json();
-        if (data.success){
-          toast("Estado actualizado ✅", "t-ok");
-          loadOrders();
-        } else {
-          toast("No se pudo actualizar", "t-err");
-        }
-      } catch(e){
-        toast("Error actualizando", "t-err");
-      }
-    }
-
-    // Auto-init
-    window.addEventListener("load", () => {
-      if (!adminKeyInput.value) {
-        adminKeyInput.value = localStorage.getItem(LS_KEY) || "SuperClaveUltraSegura_2025";
-      }
-      loadOrders();
-      // Mostrar la expresión del cron si el backend la expone en /api/health (opcional)
-      fetch(apiBase()+"/health").then(r=>r.json()).then(h=>{
-        if (h && h.cron && h.cron.schedule) cronSpec.textContent = h.cron.schedule;
-      }).catch(()=>{});
-    });
-  </script>
-</body>
-</html>
