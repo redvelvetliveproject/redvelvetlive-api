@@ -1,126 +1,148 @@
-// ===============================================================
-// 💼 REDVELVETLIVE — Rutas de Administración de Pagos (PRO FINAL)
-// ===============================================================
-// Requiere ADMIN_SECRET_KEY para ejecutarse (configurado en .env)
-// Incluye:
-//  - Forzar verificación manual del cron
-//  - Consultar logs de auditoría
-//  - Actualizar órdenes manualmente (status / notas / txHash)
+// ============================================
+// 💰 RedVelvetLive — Rutas Administrativas de Pagos (PRO FINAL)
+// ============================================
+//
+// Controla todas las funciones del panel admin:
+//   ✅ Listar órdenes con filtros
+//   ✅ Ejecutar manualmente el cron de verificación on-chain
+//   ✅ Auditar una transacción específica
+//   ✅ Actualizar estado manualmente
+//
+// Protegidas por middleware adminAuth.js
+// ============================================
 
 import express from "express";
 import PaymentOrder from "../models/PaymentOrder.js";
 import { validateObjectId } from "../services/validators.js";
-import { startPaymentsCron } from "../jobs/payments.cron.js";
-import { verifyTransaction } from "../services/web3.utils.js";
+import { verifyTransaction, auditTransaction } from "../services/web3.utils.js";
+import { runPaymentsCronJob } from "../jobs/payments.cron.js";
 
 const router = express.Router();
 
-// 🔐 Middleware de seguridad: requiere ADMIN_SECRET_KEY
-function requireAdminKey(req, res, next) {
-  const key = req.headers["x-admin-key"];
-  if (!key || key !== process.env.ADMIN_SECRET_KEY) {
-    return res.status(403).json({
-      success: false,
-      message: "Acceso denegado. Clave de administrador inválida.",
-    });
-  }
-  next();
-}
-
-/* =====================================================
-   1️⃣ Forzar verificación inmediata del cron
-   ===================================================== */
-router.post("/cron/run-once", requireAdminKey, async (req, res) => {
+/* ==========================================================
+   ✅ 1. Listar órdenes (GET /api/admin/payments/orders)
+   ========================================================== */
+router.get("/orders", async (req, res) => {
   try {
-    const { processPendingOrders } = await import("../jobs/payments.cron.js");
-    const result = await processPendingOrders();
+    const { status, type, currency, limit = 50, skip = 0 } = req.query;
+    const query = {};
+
+    if (status) query.status = status.toUpperCase();
+    if (type) query.type = type.toUpperCase();
+    if (currency) query.currency = currency.toUpperCase();
+
+    const [orders, total] = await Promise.all([
+      PaymentOrder.find(query)
+        .sort({ createdAt: -1 })
+        .skip(Number(skip))
+        .limit(Number(limit))
+        .populate("modelId", "name wallet country")
+        .lean(),
+      PaymentOrder.countDocuments(query),
+    ]);
+
     res.json({
       success: true,
-      message: "Verificación de pagos ejecutada manualmente ✅",
-      result,
+      total,
+      count: orders.length,
+      data: orders,
     });
-  } catch (err) {
-    console.error("❌ Error al ejecutar cron manual:", err);
+  } catch (error) {
+    console.error("❌ Error en /admin/payments/orders:", error);
     res.status(500).json({
       success: false,
-      message: "Error al ejecutar la verificación manual.",
-      error: err.message,
+      message: "Error interno al listar órdenes.",
     });
   }
 });
 
-/* =====================================================
-   2️⃣ Actualizar orden manualmente (status / hash / nota)
-   ===================================================== */
-router.patch("/order/:id", requireAdminKey, async (req, res) => {
+/* ==========================================================
+   ✅ 2. Ejecutar manualmente el cron (POST /cron/run)
+   ========================================================== */
+router.post("/cron/run", async (req, res) => {
+  try {
+    const result = await runPaymentsCronJob();
+    res.json({
+      success: true,
+      message: "Cron ejecutado correctamente.",
+      result,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error("❌ Error ejecutando cron manual:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error ejecutando el cron manual.",
+    });
+  }
+});
+
+/* ==========================================================
+   ✅ 3. Auditar una transacción (GET /audit/:txHash)
+   ========================================================== */
+router.get("/audit/:txHash", async (req, res) => {
+  try {
+    const { txHash } = req.params;
+    if (!/^0x[a-fA-F0-9]{64}$/.test(txHash))
+      return res.status(400).json({
+        success: false,
+        message: "Hash de transacción inválido.",
+      });
+
+    const audit = await auditTransaction(txHash);
+
+    res.json({
+      success: true,
+      audit,
+    });
+  } catch (error) {
+    console.error("❌ Error en /audit:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error interno auditando la transacción.",
+    });
+  }
+});
+
+/* ==========================================================
+   ✅ 4. Actualizar estado de una orden (PATCH /orders/:id/status)
+   ========================================================== */
+router.patch("/orders/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, txHash, note } = req.body;
+    const { status, note } = req.body;
 
     if (!validateObjectId(id))
-      return res.status(400).json({ success: false, message: "ID inválido." });
+      return res.status(400).json({
+        success: false,
+        message: "ID de orden inválido.",
+      });
 
     const order = await PaymentOrder.findById(id);
     if (!order)
-      return res.status(404).json({ success: false, message: "Orden no encontrada." });
+      return res.status(404).json({
+        success: false,
+        message: "Orden no encontrada.",
+      });
 
     if (status) order.status = status.toUpperCase();
-    if (txHash) {
-      order.txHash = txHash;
-      order.metadata.txExplorer = `https://bscscan.com/tx/${txHash}`;
-    }
     if (note) order.metadata.note = note;
-
+    order.updatedAt = new Date();
     await order.save();
-    res.json({ success: true, message: "Orden actualizada manualmente ✅", order });
-  } catch (error) {
-    console.error("❌ Error en actualización manual:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error interno al actualizar orden.",
-      error: error.message,
+
+    res.json({
+      success: true,
+      message: "Orden actualizada correctamente.",
+      order,
     });
-  }
-});
-
-/* =====================================================
-   3️⃣ Auditoría on-chain por hash (verificación directa)
-   ===================================================== */
-router.get("/audit/:txHash", requireAdminKey, async (req, res) => {
-  try {
-    const { txHash } = req.params;
-    const result = await verifyTransaction(txHash);
-    res.json({ success: true, txHash, result });
   } catch (error) {
-    console.error("❌ Error en auditoría de hash:", error);
+    console.error("❌ Error actualizando orden:", error);
     res.status(500).json({
       success: false,
-      message: "Error al auditar la transacción.",
-      error: error.message,
-    });
-  }
-});
-
-/* =====================================================
-   4️⃣ Listar últimas 100 órdenes para revisión rápida
-   ===================================================== */
-router.get("/orders/recent", requireAdminKey, async (req, res) => {
-  try {
-    const orders = await PaymentOrder.find({})
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .populate("modelId", "name wallet country")
-      .lean();
-
-    res.json({ success: true, count: orders.length, data: orders });
-  } catch (error) {
-    console.error("❌ Error listando órdenes recientes:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error al listar órdenes recientes.",
-      error: error.message,
+      message: "Error interno actualizando la orden.",
     });
   }
 });
 
 export default router;
+
