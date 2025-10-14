@@ -11,271 +11,190 @@
       --err:#ef4444;--br:14px;
     }
     *{box-sizing:border-box}
-    body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;
-      color:var(--text);background:linear-gradient(180deg,#0b0c10,#10131a);
-      min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:30px}
+    body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--text);
+      background:linear-gradient(180deg,#0b0c10,#10131a);min-height:100vh}
+    .wrap{max-width:1200px;margin:0 auto;padding:24px;display:flex;align-items:center;justify-content:center;min-height:100vh}
     .card{background:var(--panel);border:1px solid #232633;border-radius:var(--br);
-      box-shadow:0 10px 24px rgba(0,0,0,.25);padding:24px;width:100%;max-width:1200px;margin:10px auto}
+      box-shadow:0 10px 24px rgba(0,0,0,.25);padding:24px;width:100%}
     h1{font-size:24px;margin:0 0 12px}
     h2{font-size:18px;margin:0 0 8px}
-    input,button,select{border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;
-      color:var(--text);padding:10px 12px;font-size:14px}
+    input,button,select{border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;color:var(--text);padding:10px 12px;font-size:14px}
     button{background:var(--brand);border-color:var(--brand);font-weight:700;cursor:pointer;transition:.2s}
     button:hover{opacity:.85}
     button.secondary{background:#1f2431;border-color:#2a2e3b}
     button:disabled{opacity:.6;cursor:not-allowed}
     .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .hr{height:1px;background:#212436;margin:14px 0}
+    .muted{color:var(--muted)}
+    .right{text-align:right}
+    .hidden{display:none!important}
+    /* tabs */
+    .tabs{display:flex;gap:8px;margin:6px 0 12px}
+    .tab{padding:8px 12px;border:1px solid #2a2e3b;border-radius:10px;background:#0f121a;color:#e9ecf1;cursor:pointer}
+    .tab.active{background:var(--brand);border-color:var(--brand)}
+    /* counters */
+    .grid{display:grid;gap:12px}
+    .grid-4{grid-template-columns:repeat(4,1fr)}
+    .kpi{background:#101421;border:1px solid #232633;border-radius:12px;padding:12px}
+    .kpi h3{margin:0 0 6px;font-size:13px;color:#c3c9d4}
+    .kpi p{margin:0;font-weight:800;font-size:20px}
+    /* table */
     table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
     th,td{padding:8px 10px;border-bottom:1px solid #202433;text-align:left}
-    th{color:#c3c9d4;background:var(--soft);position:sticky;top:0;z-index:2}
+    th{color:#c3c9d4;background:var(--soft);position:sticky;top:0}
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px}
     .b-ok{background:#0f2b18;color:#6df0a7;border:1px solid #1a6a43}
     .b-warn{background:#2b230f;color:#ffd27a;border:1px solid #6a531a}
     .b-err{background:#2b1111;color:#ff9aaa;border:1px solid #6a1a1a}
     .b-pending{background:#1a2030;color:#9ab8ff;border:1px solid #334a85}
-    .hr{height:1px;background:#212436;margin:14px 0}
-    .muted{color:var(--muted)}
-    .hidden{display:none!important}
-    .tabs{display:flex;gap:6px;margin-bottom:14px}
-    .tab{flex:1;text-align:center;padding:10px;border-radius:8px;cursor:pointer;
-         background:#1a1d25;border:1px solid #2a2e3b;font-weight:600}
-    .tab.active{background:var(--brand);border-color:var(--brand)}
+    /* pager */
+    .pager{display:flex;align-items:center;gap:10px;margin-top:12px}
+    .pill{display:inline-flex;align-items:center;gap:6px;background:#0e1118;border:1px solid #2a2e3b;border-radius:999px;padding:6px 10px}
+    /* toast */
     #toast{position:fixed;bottom:-100px;right:20px;transition:.4s;opacity:0;
-      background:#2563eb;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;
-      box-shadow:0 10px 20px rgba(0,0,0,.4);z-index:999}
+      background:#2563eb;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;box-shadow:0 10px 20px rgba(0,0,0,.4);z-index:9999}
     #toast.show{bottom:20px;opacity:1}
   </style>
 </head>
 <body>
-
-  <!-- 🔐 LOGIN -->
-  <div id="loginView" class="card">
-    <h1>🔐 Ingreso Administrativo</h1>
-    <p class="muted">Accede al panel seguro de RedVelvetLive</p>
-    <div class="row">
-      <input id="email" type="email" placeholder="Correo (ADMIN_EMAIL)" style="flex:1" />
-      <input id="key" type="password" placeholder="Clave (ADMIN_SECRET_KEY)" style="flex:1" />
-      <button id="loginBtn">Ingresar</button>
+  <!-- LOGIN -->
+  <div id="loginView" class="wrap">
+    <div class="card" style="max-width:720px">
+      <h1>🔐 Ingreso Administrativo</h1>
+      <p class="muted">Accede al panel seguro de RedVelvetLive</p>
+      <div class="row">
+        <input id="email" type="email" placeholder="Correo (ADMIN_EMAIL)" style="flex:1" />
+        <input id="key" type="password" placeholder="Clave (ADMIN_SECRET_KEY)" style="flex:1" />
+        <button id="loginBtn">Ingresar</button>
+      </div>
     </div>
   </div>
 
-  <!-- 🌹 PANEL -->
-  <div id="panelView" class="card hidden">
-    <h1>🌹 RedVelvetLive — Panel Administrativo</h1>
-    <div class="row" style="justify-content:flex-end">
-      <button id="logoutBtn" class="secondary">Cerrar sesión</button>
-    </div>
-
-    <div class="hr"></div>
-
-    <!-- 📑 TABS -->
-    <div class="tabs">
-      <div class="tab active" data-tab="pagos">💰 Pagos</div>
-      <div class="tab" data-tab="modelos">👩‍💼 Modelos</div>
-    </div>
-
-    <!-- 💰 TAB PAGOS -->
-    <div id="tab-pagos">
-      <div class="row">
-        <button id="runCron">▶ Ejecutar Cron</button>
-        <input id="txHash" type="text" placeholder="0x... Hash transacción" style="flex:1" />
-        <button id="auditBtn">Auditar</button>
-        <button id="refreshBtn">🔄 Cargar Órdenes</button>
+  <!-- PANEL -->
+  <div id="panelView" class="wrap hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:0">
+        <h1 style="margin:0">🌹 RedVelvetLive — Panel Administrativo</h1>
+        <div class="row" style="margin:0">
+          <button id="openModelsTab" class="secondary">Modelos</button>
+          <button id="openPaymentsTab" class="secondary">Pagos</button>
+          <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+        </div>
       </div>
 
-      <table id="ordersTable">
-        <thead>
-          <tr>
-            <th>Fecha</th><th>Modelo</th><th>Monto</th><th>Moneda</th>
-            <th>Tipo</th><th>Estado</th><th>Tx</th>
-          </tr>
-        </thead>
-        <tbody id="ordersBody">
-          <tr><td colspan="7" class="muted">Sin datos…</td></tr>
-        </tbody>
-      </table>
-    </div>
+      <div class="hr"></div>
 
-    <!-- 👩‍💼 TAB MODELOS -->
-    <div id="tab-modelos" class="hidden">
-      <div class="row">
-        <input id="searchModel" placeholder="Buscar nombre / país / wallet" style="flex:2">
-        <select id="filterStatus">
-          <option value="">Estado (todos)</option>
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="INACTIVE">INACTIVE</option>
-          <option value="BANNED">BANNED</option>
-        </select>
-        <button id="loadModelsBtn">🔄 Cargar Modelos</button>
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab active" data-tab="payments">💳 Órdenes</button>
+        <button class="tab" data-tab="models">👩 Modelos</button>
       </div>
 
-      <table id="modelsTable">
-        <thead>
-          <tr>
-            <th>Nombre</th><th>País</th><th>Wallet</th><th>Estado</th>
-            <th>⭐ Destacada</th><th>💎 Embajadora</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="modelsBody">
-          <tr><td colspan="7" class="muted">Sin datos…</td></tr>
-        </tbody>
-      </table>
+      <!-- TAB: PAGOS -->
+      <section id="tab-payments">
+        <div class="row">
+          <button id="runCron">▶ Ejecutar Cron</button>
+          <input id="txHash" type="text" placeholder="0x... Hash transacción" style="flex:1" />
+          <button id="auditBtn">Auditar</button>
+        </div>
+
+        <div class="row">
+          <select id="pStatus">
+            <option value="">Estado (todos)</option>
+            <option>PENDING</option><option>PROCESSING</option>
+            <option>CONFIRMED</option><option>FAILED</option><option>CANCELLED</option>
+          </select>
+          <select id="pType">
+            <option value="">Tipo (todos)</option>
+            <option>TIP</option><option>WITHDRAWAL</option><option>DISTRIBUTION</option><option>BONUS</option>
+          </select>
+          <select id="pCurrency">
+            <option value="">Moneda (todas)</option>
+            <option>ONECOP</option><option>USDT</option>
+          </select>
+          <select id="pLimit">
+            <option>10</option><option selected>25</option><option>50</option><option>100</option>
+          </select>
+          <button id="pRefresh">🔄 Buscar</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Modelo</th>
+              <th>Monto</th>
+              <th>Moneda</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Tx</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody">
+            <tr><td colspan="7" class="muted">Sin datos…</td></tr>
+          </tbody>
+        </table>
+
+        <div class="pager">
+          <button id="pPrev" class="secondary">Anterior</button>
+          <div class="pill"><span id="pInfo">0–0</span></div>
+          <button id="pNext" class="secondary">Siguiente</button>
+        </div>
+      </section>
+
+      <!-- TAB: MODELOS -->
+      <section id="tab-models" class="hidden">
+        <div class="grid grid-4">
+          <div class="kpi"><h3>Activos</h3><p id="mKpiActive">—</p></div>
+          <div class="kpi"><h3>Inactivos</h3><p id="mKpiInactive">—</p></div>
+          <div class="kpi"><h3>Destacadas</h3><p id="mKpiFeatured">—</p></div>
+          <div class="kpi"><h3>Embajadoras</h3><p id="mKpiAmb">—</p></div>
+        </div>
+
+        <div class="row">
+          <select id="mStatus">
+            <option value="">Estado (todos)</option>
+            <option>ACTIVE</option><option>INACTIVE</option><option>BANNED</option>
+          </select>
+          <input id="mQuery" type="text" placeholder="Buscar por nombre/país/wallet" style="flex:1" />
+          <select id="mLimit">
+            <option>10</option><option selected>25</option><option>50</option><option>100</option>
+          </select>
+          <button id="mRefresh">🔄 Buscar</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>País</th>
+              <th>Wallet</th>
+              <th>Estado</th>
+              <th>Destacada</th>
+              <th>Embajadora</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="modelsBody">
+            <tr><td colspan="7" class="muted">Sin datos…</td></tr>
+          </tbody>
+        </table>
+
+        <div class="pager">
+          <button id="mPrev" class="secondary">Anterior</button>
+          <div class="pill"><span id="mInfo">0–0</span></div>
+          <button id="mNext" class="secondary">Siguiente</button>
+        </div>
+      </section>
     </div>
   </div>
 
   <div id="toast"></div>
 
-  <script>
-    const API = location.origin.includes("localhost") ? "http://localhost:4000/api" : location.origin + "/api";
-    const $ = (s)=>document.querySelector(s);
-    const toast=(m,t="info")=>{
-      const el=$("#toast");
-      el.textContent=m;
-      el.style.background=t==="ok"?"#16a34a":t==="err"?"#ef4444":"#2563eb";
-      el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2500);
-    };
-
-    const loginView=$("#loginView"), panelView=$("#panelView");
-
-    async function verifySession(){
-      try{
-        const res=await fetch(API+"/admin/verify",{credentials:"include"});
-        const data=await res.json();
-        if(data.success){ showPanel(); }
-      }catch{}
-    }
-
-    function showPanel(){
-      loginView.classList.add("hidden");
-      panelView.classList.remove("hidden");
-      loadOrders();
-    }
-
-    $("#loginBtn").onclick=async()=>{
-      const email=$("#email").value.trim(), key=$("#key").value.trim();
-      if(!email||!key)return toast("Campos incompletos","err");
-      try{
-        const res=await fetch(API+"/admin/login",{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({email,key}),credentials:"include"
-        });
-        const data=await res.json();
-        if(data.success){ toast("Bienvenido "+data.admin.email,"ok"); showPanel(); }
-        else toast(data.message||"Acceso denegado","err");
-      }catch{toast("Error de conexión","err")}
-    };
-
-    $("#logoutBtn").onclick=async()=>{
-      await fetch(API+"/admin/logout",{method:"POST",credentials:"include"});
-      panelView.classList.add("hidden"); loginView.classList.remove("hidden");
-      toast("Sesión cerrada","ok");
-    };
-
-    // ======= 📑 TABS =======
-    document.querySelectorAll(".tab").forEach(tab=>{
-      tab.onclick=()=>{
-        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-        tab.classList.add("active");
-        const name=tab.dataset.tab;
-        $("#tab-pagos").classList.toggle("hidden", name!=="pagos");
-        $("#tab-modelos").classList.toggle("hidden", name!=="modelos");
-        if(name==="modelos")loadModels();
-      };
-    });
-
-    // ======= 💰 PAGOS =======
-    $("#runCron").onclick=async()=>{
-      try{
-        const r=await fetch(API+"/admin/payments/cron/run",{method:"POST",credentials:"include"});
-        const d=await r.json();
-        d.success?toast("Cron ejecutado","ok"):toast("Error al ejecutar","err");
-      }catch{toast("Error","err")}
-    };
-
-    $("#auditBtn").onclick=async()=>{
-      const tx=$("#txHash").value.trim(); if(!tx)return toast("Ingresa hash","err");
-      try{
-        const r=await fetch(API+"/admin/payments/audit/"+tx,{credentials:"include"});
-        const d=await r.json();
-        d.verified?toast("Tx verificada ✅","ok"):toast("No verificada","warn");
-      }catch{toast("Error auditando","err")}
-    };
-
-    async function loadOrders(){
-      const tbody=$("#ordersBody"); tbody.innerHTML="<tr><td colspan='7' class='muted'>Cargando…</td></tr>";
-      try{
-        const r=await fetch(API+"/admin/payments/orders",{credentials:"include"});
-        const d=await r.json(); if(!d.success)return toast("Error obteniendo órdenes","err");
-        tbody.innerHTML="";
-        d.data.forEach(o=>{
-          const s=(o.status||"").toUpperCase();
-          const map={PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
-          const tr=document.createElement("tr");
-          tr.innerHTML=`
-            <td>${new Date(o.createdAt).toLocaleString()}</td>
-            <td>${o.modelId?.name||"—"}</td>
-            <td><b>${o.amount}</b></td>
-            <td>${o.currency}</td>
-            <td>${o.type}</td>
-            <td><span class="badge ${map[s]||"b-pending"}">${s}</span></td>
-            <td>${o.txHash?`<a href='https://bscscan.com/tx/${o.txHash}' target='_blank'>${o.txHash.slice(0,10)}…</a>`:"—"}</td>`;
-          tbody.appendChild(tr);
-        });
-      }catch{toast("Error cargando órdenes","err")}
-    }
-
-    // ======= 👩‍💼 MODELOS =======
-    async function loadModels(){
-      const tbody=$("#modelsBody");
-      tbody.innerHTML="<tr><td colspan='7' class='muted'>Cargando…</td></tr>";
-      const status=$("#filterStatus").value, search=$("#searchModel").value.trim();
-      const qs=new URLSearchParams(); if(status)qs.set("status",status); if(search)qs.set("search",search);
-      try{
-        const r=await fetch(API+"/admin/models?"+qs.toString(),{credentials:"include"});
-        const d=await r.json(); if(!d.success)return toast("Error obteniendo modelos","err");
-        tbody.innerHTML="";
-        d.data.forEach(m=>{
-          const tr=document.createElement("tr");
-          tr.innerHTML=`
-            <td>${m.name||"—"}</td>
-            <td>${m.country||"—"}</td>
-            <td><code>${m.wallet?.slice(0,10)||"—"}</code></td>
-            <td><b>${m.status}</b></td>
-            <td><input type='checkbox' ${m.featured?"checked":""} data-id='${m._id}' data-field='featured'></td>
-            <td><input type='checkbox' ${m.ambassador?"checked":""} data-id='${m._id}' data-field='ambassador'></td>
-            <td>
-              <select data-id='${m._id}' data-action='status'>
-                <option ${m.status==="ACTIVE"?"selected":""}>ACTIVE</option>
-                <option ${m.status==="INACTIVE"?"selected":""}>INACTIVE</option>
-                <option ${m.status==="BANNED"?"selected":""}>BANNED</option>
-              </select>
-            </td>`;
-          tbody.appendChild(tr);
-        });
-
-        // Cambios rápidos
-        tbody.onchange=async(e)=>{
-          const el=e.target;
-          const id=el.dataset.id;
-          if(el.dataset.field){
-            const field=el.dataset.field;
-            const body={ [field]: el.checked };
-            await fetch(API+"/admin/models/"+id+"/feature",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),credentials:"include"});
-            toast("Modelo actualizado","ok");
-          }
-          if(el.dataset.action==="status"){
-            const val=el.value;
-            await fetch(API+"/admin/models/"+id+"/status",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:val}),credentials:"include"});
-            toast("Estado actualizado","ok");
-          }
-        };
-      }catch{toast("Error cargando modelos","err")}
-    }
-
-    $("#loadModelsBtn").onclick=loadModels;
-    verifySession();
-  </script>
+  <!-- JS externo -->
+  <script src="/admin/js/admin.js"></script>
 </body>
 </html>
+
 
 
