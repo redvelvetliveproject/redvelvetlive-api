@@ -18,12 +18,13 @@ import connectDB from "./config/db.js";
 import modelsPublicRoutes from "./routes/models.public.routes.js";
 import paymentsRoutes from "./routes/payments.routes.js";
 
-// 🔐 Administración
+// 🔐 Administración (auth + módulos internos)
 import adminAuthRoutes from "./routes/admin.auth.routes.js";
 import paymentsAdminRoutes from "./routes/payments.admin.routes.js";
+import modelsAdminRoutes from "./routes/models.admin.routes.js";
 import adminAuth from "./middleware/adminAuth.js";
 
-// 🕒 Cron de pagos
+// 🕒 Cron de pagos (verificación on-chain automática)
 import { startPaymentsCron } from "./jobs/payments.cron.js";
 
 // ⚙️ Configuración base
@@ -44,10 +45,10 @@ app.use(
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // ✅ necesario para autenticación JWT vía cookie
-app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(compression()); // 🔧 compresión GZIP
-app.use(morgan("dev")); // logs HTTP
+app.use(cookieParser()); // 🔑 necesario para JWT por cookie
+app.use(helmet({ crossOriginResourcePolicy: false })); // protección HTTP
+app.use(compression()); // ⚙️ GZIP para optimizar tráfico
+app.use(morgan("dev")); // 🧾 logs HTTP legibles
 
 // =========================
 // 🗄️ Conexión a MongoDB
@@ -75,7 +76,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// 👩‍💻 Modelos públicos (listado, perfil, live)
+// 👩‍💻 Modelos públicos (listado, perfil, streaming)
 app.use("/api/models", modelsPublicRoutes);
 
 // 💰 Pagos generales (tips, retiros, etc.)
@@ -85,16 +86,19 @@ app.use("/api/payments", paymentsRoutes);
 // 🔐 Administración protegida con JWT
 // =========================
 
-// Login administrativo (POST /api/admin/login)
+// 🧩 Login administrativo (devuelve token)
 app.use("/api/admin", adminAuthRoutes);
 
-// Rutas de pagos administrativas (protegidas)
+// 💳 Administración de pagos
 app.use("/api/admin/payments", adminAuth, paymentsAdminRoutes);
+
+// 👩‍💼 Administración de modelos activos / embajadoras
+app.use("/api/admin/models", adminAuth, modelsAdminRoutes);
 
 // =========================
 // 🖥️ Servir Panel Admin desde el backend
 // =========================
-// Esto permite abrir directamente: http://localhost:4000/admin
+// Permite acceder al panel visual en: http://localhost:4000/admin
 const adminPath = path.join(__dirname, "../admin");
 app.use("/admin", express.static(adminPath));
 console.log(`🧩 Panel Admin servido desde: ${adminPath}`);
@@ -111,26 +115,32 @@ app.use((err, req, res, next) => {
 });
 
 // =========================
-// 🚀 Iniciar servidor
+// 🚀 Inicialización del servidor
 // =========================
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 API RedVelvetLive corriendo en puerto ${PORT}`);
-  console.log(`🩺 Health check: ${process.env.PUBLIC_URL || "http://localhost:" + PORT}/api/health`);
+  console.log(
+    `🩺 Health check: ${
+      process.env.PUBLIC_URL || "http://localhost:" + PORT
+    }/api/health`
+  );
   console.log(`🌐 Entorno: ${process.env.NODE_ENV}`);
-  console.log(`🔑 Panel Admin: ${process.env.PUBLIC_URL || "http://localhost:" + PORT}/admin`);
+  console.log(
+    `🔑 Panel Admin: ${
+      process.env.PUBLIC_URL || "http://localhost:" + PORT
+    }/admin`
+  );
 });
 
 // =========================
-// 🔁 CRON de verificación automática de pagos
+// 🔁 Cron de verificación automática de pagos
 // =========================
 if (process.env.CRON_ENABLED === "true") {
   startPaymentsCron();
-  console.log("🕒 Cron de verificación de pagos iniciado.");
+  console.log("🕒 Cron de verificación de pagos iniciado automáticamente.");
 } else {
   console.log("⏸️ Cron deshabilitado por configuración (.env).");
 }
 
 export default app;
-
-
