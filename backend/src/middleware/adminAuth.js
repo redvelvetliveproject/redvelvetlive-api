@@ -1,78 +1,58 @@
 // ============================================
-// 🔒 RedVelvetLive — Middleware de Autenticación Admin (PRO)
+// 🔐 RedVelvetLive — Middleware de Autenticación Admin (PRO FINAL)
 // ============================================
 //
-// Protege las rutas administrativas verificando tokens JWT válidos.
-// Los tokens pueden recibirse por cookie (rvl_admin_token) o por header Authorization.
+// Este middleware protege las rutas /api/admin/*
+// Validando el token JWT emitido al hacer login.
 //
-// Flujo:
-// 1. Login genera token JWT (admin.auth.routes.js)
-// 2. Este middleware valida el token en cada request
-// 3. Si es válido → next()
-// 4. Si no, responde con 401 o 403 según el caso
+// Soporta:
+//   ✅ Token por cookie HTTP-only ("rvl_admin_token")
+//   ✅ Token en Header "Authorization: Bearer <token>"
 // ============================================
 
 import jwt from "jsonwebtoken";
 
-/**
- * Middleware de autenticación para rutas /api/admin/*
- */
 export default function adminAuth(req, res, next) {
   try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      console.error("⚠️ JWT_SECRET no definido en el entorno (.env)");
-      return res.status(500).json({
-        success: false,
-        message: "Configuración del servidor incompleta (JWT_SECRET faltante)",
-      });
-    }
-
-    // 🔍 Obtener token desde cookie o header
+    // 🔍 Obtener token (cookie o header)
     const cookieToken = req.cookies?.rvl_admin_token;
-    const authHeader = req.headers["authorization"];
-    const bearerToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const headerToken = req.headers.authorization?.split(" ")[1];
+    const token = cookieToken || headerToken;
 
-    const token = cookieToken || bearerToken;
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Acceso no autorizado: falta token.",
+        message: "No se encontró token de autenticación.",
       });
     }
 
-    // ✅ Verificar token JWT
-    jwt.verify(token, secret, (err, decoded) => {
-      if (err) {
-        console.warn("❌ Token inválido o expirado:", err.message);
-        return res.status(403).json({
-          success: false,
-          message:
-            err.name === "TokenExpiredError"
-              ? "Sesión expirada. Inicia sesión nuevamente."
-              : "Token inválido o manipulado.",
-        });
-      }
+    // 🧩 Verificar validez del token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // 🧠 Verificar rol administrativo
-      if (decoded.role !== "admin") {
-        return res.status(403).json({
-          success: false,
-          message: "No tienes permisos administrativos.",
-        });
-      }
+    if (!decoded || decoded.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Token inválido o sin permisos.",
+      });
+    }
 
-      // 🔁 Guardar datos del token en la request
-      req.admin = decoded;
-      next();
-    });
+    // ✅ Token válido → adjuntar datos del admin al request
+    req.admin = decoded;
+    next();
   } catch (error) {
-    console.error("⚠️ Error en middleware adminAuth:", error);
-    res.status(500).json({
+    console.error("❌ Error en adminAuth:", error.message);
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "La sesión ha expirado. Inicia sesión nuevamente.",
+      });
+    }
+
+    res.status(401).json({
       success: false,
-      message: "Error interno en autenticación.",
+      message: "Autenticación administrativa inválida.",
     });
   }
 }
+
