@@ -2,28 +2,26 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>🌹 RedVelvetLive · Panel Admin</title>
+  <title>RedVelvetLive · Panel Administrativo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root {
-      --bg:#0f1115;--panel:#151822;--soft:#191c27;
-      --text:#e9ecf1;--muted:#9aa3b2;--brand:#e31221;
-      --ok:#16a34a;--warn:#f59e0b;--err:#ef4444;--br:14px;
+    :root{
+      --bg:#0f1115;--panel:#151822;--soft:#191c27;--text:#e9ecf1;--muted:#9aa3b2;
+      --brand:#e31221;--ok:#16a34a;--warn:#f59e0b;--err:#ef4444;--br:14px;
     }
     *{box-sizing:border-box}
-    body{margin:0;font:14px/1.5 'Inter',system-ui,Segoe UI,Roboto;color:var(--text);background:linear-gradient(180deg,#0b0c10,#10131a);min-height:100vh}
+    body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--text);
+      background:linear-gradient(180deg,#0b0c10,#10131a)}
     .container{max-width:1100px;margin:auto;padding:24px}
-    .card{background:var(--panel);border:1px solid #232633;border-radius:var(--br);box-shadow:0 10px 24px rgba(0,0,0,.25)}
+    .card{background:var(--panel);border:1px solid #232633;border-radius:var(--br);
+      box-shadow:0 10px 24px rgba(0,0,0,.25);padding:20px;margin-bottom:18px}
     h1{font-size:24px;margin:0 0 12px}
     h2{font-size:18px;margin:0 0 8px}
     .grid{display:grid;gap:16px}
     .grid-2{grid-template-columns:1fr 1fr}
     .row{display:flex;gap:10px;flex-wrap:wrap}
-    input,select,button{
-      border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;
-      color:var(--text);padding:10px 12px;transition:all .25s ease;
-    }
-    input:focus,select:focus{outline:none;border-color:var(--brand)}
+    input,select,button{border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;
+      color:var(--text);padding:10px 12px}
     input::placeholder{color:#6b7280}
     button{background:var(--brand);border-color:var(--brand);font-weight:700;cursor:pointer}
     button.secondary{background:#1f2431;border-color:#2a2e3b}
@@ -31,162 +29,175 @@
     table{width:100%;border-collapse:collapse;font-size:13px}
     th,td{padding:10px;border-bottom:1px solid #202433}
     th{color:#c3c9d4;text-align:left;background:var(--soft);position:sticky;top:0}
-    .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#0e1118;border:1px solid #262a36;border-radius:8px;padding:2px 6px}
     .muted{color:var(--muted)}
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px}
     .b-ok{background:#0f2b18;color:#6df0a7;border:1px solid #1a6a43}
     .b-warn{background:#2b230f;color:#ffd27a;border:1px solid #6a531a}
     .b-err{background:#2b1111;color:#ff9aaa;border:1px solid #6a1a1a}
     .b-pending{background:#1a2030;color:#9ab8ff;border:1px solid #334a85}
-    .right{display:flex;justify-content:flex-end;gap:10px}
-    .toast{position:fixed;right:20px;bottom:-100px;transition:.35s;opacity:0;min-width:260px;max-width:360px;padding:12px 16px;border-radius:10px;color:#fff;font-weight:700;box-shadow:0 10px 28px rgba(0,0,0,.5);z-index:9999}
+    .toast{position:fixed;right:20px;bottom:-100px;transition:.35s;opacity:0;min-width:260px;
+      max-width:360px;padding:12px 16px;border-radius:10px;color:#fff;font-weight:700;
+      box-shadow:0 10px 28px rgba(0,0,0,.5);z-index:9999}
     .toast.show{bottom:20px;opacity:1}
     .t-ok{background:var(--ok)} .t-err{background:var(--err)} .t-info{background:#2563eb}
+    .hr{height:1px;background:#212436;margin:14px 0}
     .footer{margin-top:18px;color:#7c8597}
-    .tooltip{position:relative;cursor:help}
-    .tooltip:hover::after{
-      content:attr(data-tip);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);
-      background:#22283a;color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;white-space:nowrap;
-    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="card" style="padding:18px">
-      <h1>🌹 RedVelvetLive — Panel Administrativo</h1>
-      <p class="muted">Gestión segura de pagos y auditorías on-chain.</p>
-      <div class="hr" style="height:1px;background:#222;margin:12px 0"></div>
+    <div id="loginCard" class="card" style="max-width:420px;margin:auto;margin-top:60px;display:none">
+      <h1>🔐 Ingreso Administrativo</h1>
+      <p class="muted">Usa las credenciales del .env para acceder.</p>
+      <div class="hr"></div>
+      <input id="email" type="email" placeholder="admin@redvelvetlive.com" style="width:100%;margin-bottom:10px" />
+      <input id="password" type="password" placeholder="Contraseña" style="width:100%;margin-bottom:16px" />
+      <button id="loginBtn" style="width:100%">Iniciar sesión</button>
+    </div>
 
-      <!-- 🔐 Autenticación -->
-      <div class="grid grid-2">
-        <div class="card" style="padding:16px">
-          <h2>🔑 Clave de administrador</h2>
-          <div class="row">
-            <input id="adminKey" type="password" placeholder="ADMIN_SECRET_KEY" style="flex:1" />
-            <button id="saveKeyBtn">Guardar</button>
-          </div>
-          <p class="muted">Se almacena localmente (<span class="kbd">localStorage</span>) para futuras sesiones.</p>
+    <div id="panel" style="display:none">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h1>🌹 RedVelvetLive — Panel Administrativo</h1>
+          <button id="logoutBtn" class="secondary">Cerrar sesión</button>
         </div>
-
-        <div class="card" style="padding:16px">
-          <h2>🌐 API Base</h2>
-          <div class="row">
-            <input id="apiBase" type="text" placeholder="https://api.redvelvetlive.com/api" style="flex:1" />
-            <button class="secondary" id="useLocal">Local</button>
-            <button id="saveApiBtn">Guardar</button>
-          </div>
-        </div>
+        <p class="muted">Gestión de pagos, auditorías on-chain y cron de verificación.</p>
       </div>
 
-      <div class="hr" style="height:1px;background:#222;margin:12px 0"></div>
-
-      <!-- Cron y Auditoría -->
       <div class="grid grid-2">
-        <div class="card" style="padding:16px">
-          <h2 class="tooltip" data-tip="Ejecuta manualmente el verificador de pagos pendientes.">⏱ Cron de verificación</h2>
-          <div class="row">
-            <button id="runCron">▶ Ejecutar cron ahora</button>
-            <span class="muted">Cada 5 minutos por sistema</span>
-          </div>
-          <pre id="cronResult" style="display:none;background:#0e1118;border:1px solid #23263a;border-radius:8px;padding:10px;margin-top:10px;max-height:200px;overflow:auto"></pre>
+        <div class="card">
+          <h2>⏱ Cron de verificación</h2>
+          <button id="runCron">▶ Ejecutar cron ahora</button>
+          <div id="cronResult" class="muted" style="margin-top:10px"></div>
         </div>
-
-        <div class="card" style="padding:16px">
-          <h2 class="tooltip" data-tip="Valida la existencia y estado de una transacción específica.">🧾 Auditoría de transacción</h2>
+        <div class="card">
+          <h2>🧾 Auditoría de transacción</h2>
           <div class="row">
-            <input id="txHash" type="text" placeholder="0x... hash" style="flex:1" />
+            <input id="txHash" type="text" placeholder="0x... tx hash" style="flex:1" />
             <button id="auditBtn">Auditar</button>
           </div>
-          <pre id="auditBox" style="display:none;background:#0e1118;border:1px solid #23263a;border-radius:8px;padding:10px;margin-top:10px;max-height:200px;overflow:auto"></pre>
+          <div id="auditBox" class="muted" style="margin-top:10px"></div>
         </div>
       </div>
 
-      <div class="hr" style="height:1px;background:#222;margin:12px 0"></div>
-
-      <!-- Órdenes -->
-      <div class="card" style="padding:16px">
+      <div class="card">
         <h2>💰 Órdenes de Pago</h2>
         <div class="row" style="margin-bottom:10px">
-          <select id="fStatus"><option value="">Estado</option><option>PENDING</option><option>PROCESSING</option><option>CONFIRMED</option><option>FAILED</option></select>
-          <select id="fType"><option value="">Tipo</option><option>TIP</option><option>WITHDRAWAL</option><option>DISTRIBUTION</option><option>BONUS</option></select>
-          <select id="fCurrency"><option value="">Moneda</option><option>ONECOP</option><option>USDT</option></select>
-          <input id="fLimit" type="number" min="1" value="25" style="width:120px" />
-          <button id="refreshBtn">🔄 Cargar</button>
+          <select id="fStatus">
+            <option value="">Estado</option><option>PENDING</option>
+            <option>PROCESSING</option><option>CONFIRMED</option>
+            <option>FAILED</option><option>CANCELLED</option>
+          </select>
+          <select id="fType">
+            <option value="">Tipo</option><option>TIP</option><option>WITHDRAWAL</option>
+            <option>DISTRIBUTION</option><option>BONUS</option>
+          </select>
+          <button id="refreshBtn">🔄 Actualizar</button>
         </div>
-        <div class="card" style="background:#0e1118;border:1px solid #23263a;overflow:auto;max-height:60vh">
-          <table id="ordersTable"><thead><tr>
-            <th>Fecha</th><th>Modelo</th><th>Monto</th><th>Moneda</th><th>Tipo</th><th>Estado</th><th>Tx</th><th>Acciones</th>
-          </tr></thead><tbody id="ordersBody"><tr><td colspan="8" class="muted">Sin datos...</td></tr></tbody></table>
-        </div>
+        <table>
+          <thead><tr><th>Fecha</th><th>Modelo</th><th>Monto</th><th>Moneda</th>
+          <th>Tipo</th><th>Estado</th><th>Tx</th></tr></thead>
+          <tbody id="ordersBody"><tr><td colspan="7" class="muted">Sin datos...</td></tr></tbody>
+        </table>
       </div>
 
-      <p class="footer">Hecho con ❤ por RedVelvetLive · Seguridad mediante <code>x-admin-key</code></p>
+      <div class="footer">
+        <p>Panel protegido con JWT · RedVelvetLive © 2025</p>
+      </div>
     </div>
   </div>
 
   <div id="toast" class="toast">listo</div>
 
   <script>
-    const $ = (s)=>document.querySelector(s);
-    const toast=(m,t="t-info")=>{
-      const el=$("#toast");el.className="toast "+t;el.textContent=m;
-      requestAnimationFrame(()=>{el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2500)});
-    };
-    const LS_KEY="rvl_admin_key",LS_API="rvl_api_base";
-    const DEF_API=location.origin.includes("localhost")?"http://localhost:4000/api":location.origin+"/api";
-    $("#adminKey").value=localStorage.getItem(LS_KEY)||"";
-    $("#apiBase").value=localStorage.getItem(LS_API)||DEF_API;
-    $("#saveKeyBtn").onclick=()=>{localStorage.setItem(LS_KEY,$("#adminKey").value.trim());toast("Clave guardada","t-ok")};
-    $("#saveApiBtn").onclick=()=>{localStorage.setItem(LS_API,$("#apiBase").value.trim());toast("API guardada","t-ok")};
-    $("#useLocal").onclick=()=>{const v="http://localhost:4000/api";$("#apiBase").value=v;localStorage.setItem(LS_API,v);toast("API local aplicada","t-ok")};
-    const api=()=>($("#apiBase").value||DEF_API).replace(/\/$/,"");
-    const headers=()=>({"Content-Type":"application/json","x-admin-key":localStorage.getItem(LS_KEY)||$("#adminKey").value.trim()});
-    
-    async function safeFetch(url,opt={}){try{const r=await fetch(url,opt);return await r.json();}catch(e){toast("Error de red","t-err");return{success:false,error:e.message}}}
+    const toastEl = document.getElementById("toast");
+    function toast(msg,type="t-info"){toastEl.className="toast "+type;toastEl.textContent=msg;
+      requestAnimationFrame(()=>{toastEl.classList.add("show");setTimeout(()=>toastEl.classList.remove("show"),2500);});}
 
-    $("#runCron").onclick=async()=>{
-      const btn=$("#runCron");btn.disabled=true;const d=await safeFetch(api()+"/admin/payments/cron/run",{method:"POST",headers:headers()});
-      $("#cronResult").style.display="block";$("#cronResult").textContent=JSON.stringify(d,null,2);
-      toast(d.success?"Cron ejecutado ✅":"Fallo al ejecutar","t-"+(d.success?"ok":"err"));btn.disabled=false;
-    };
+    const apiBase = location.origin.includes("localhost") ? "http://localhost:4000/api" : location.origin + "/api";
+    const tokenKey = "rvl_admin_token";
 
-    $("#auditBtn").onclick=async()=>{
-      const tx=$("#txHash").value.trim();if(!tx)return toast("Ingresa un txHash","t-err");
-      const d=await safeFetch(api()+"/admin/payments/audit/"+tx,{headers:headers()});
-      $("#auditBox").style.display="block";$("#auditBox").textContent=JSON.stringify(d,null,2);
-      toast(d.success?"Auditoría OK":"No verificada",d.success?"t-ok":"t-err");
-    };
+    const loginCard = document.getElementById("loginCard");
+    const panel = document.getElementById("panel");
 
-    $("#refreshBtn").onclick=loadOrders;
-    async function loadOrders(){
-      const body=$("#ordersBody");body.innerHTML="<tr><td colspan='8' class='muted'>Cargando...</td></tr>";
-      const qs=new URLSearchParams();["Status","Type","Currency","Limit"].forEach(k=>{const v=$("#f"+k).value;if(v)qs.set(k.toLowerCase(),v)});
-      const d=await safeFetch(api()+"/admin/payments/orders?"+qs,{headers:headers()});
-      if(!d.success){toast("Error cargando","t-err");return body.innerHTML="<tr><td colspan='8' class='muted'>Error al cargar.</td></tr>";}
-      if(!d.data?.length)return body.innerHTML="<tr><td colspan='8' class='muted'>Sin resultados.</td></tr>";
-      body.innerHTML="";
-      d.data.forEach(o=>{
-        const s=o.status||"PENDING";
-        const map={PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
-        const tx=o.txHash?`<a href="https://bscscan.com/tx/${o.txHash}" target="_blank" class="kbd" title="${o.txHash}">${o.txHash.slice(0,10)}…</a>`:"—";
-        const tr=document.createElement("tr");
-        tr.innerHTML=`<td>${new Date(o.createdAt).toLocaleString()}</td>
-        <td>${o.modelId?.name||"—"}</td><td><b>${o.amount}</b></td><td>${o.currency}</td>
-        <td>${o.type}</td><td><span class="badge ${map[s]||"b-pending"}">${s}</span></td><td>${tx}</td>
-        <td><select id="sel-${o._id}">${["PENDING","PROCESSING","CONFIRMED","FAILED","CANCELLED"].map(st=>`<option ${st===s?"selected":""}>${st}</option>`).join("")}</select>
-        <button data-id="${o._id}">💾</button></td>`;
-        body.appendChild(tr);
-      });
-      body.onclick=async e=>{
-        const b=e.target.closest("button");if(!b)return;
-        const id=b.dataset.id;const status=$("#sel-"+id).value;
-        const r=await safeFetch(api()+"/admin/payments/orders/"+id+"/status",{method:"PATCH",headers:headers(),body:JSON.stringify({status})});
-        toast(r.success?"Actualizado":"Error","t-"+(r.success?"ok":"err"));
-        if(r.success)loadOrders();
-      };
+    function showLogin(){loginCard.style.display="block";panel.style.display="none";}
+    function showPanel(){loginCard.style.display="none";panel.style.display="block";}
+
+    async function checkSession(){
+      const token = localStorage.getItem(tokenKey);
+      if(!token){showLogin();return;}
+      try{
+        const res = await fetch(apiBase+"/admin/verify",{headers:{Authorization:"Bearer "+token}});
+        const data = await res.json();
+        if(data.success) showPanel(); else showLogin();
+      }catch{showLogin();}
     }
 
-    window.addEventListener("load",loadOrders);
+    document.getElementById("loginBtn").onclick = async ()=>{
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if(!email||!password)return toast("Ingresa email y contraseña","t-err");
+      try{
+        const res = await fetch(apiBase+"/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+        const data = await res.json();
+        if(data.success){
+          localStorage.setItem(tokenKey,data.token);
+          toast("Bienvenido "+email,"t-ok");
+          showPanel();loadOrders();
+        }else toast(data.message||"Error","t-err");
+      }catch(e){toast("Error al iniciar sesión","t-err");}
+    };
+
+    document.getElementById("logoutBtn").onclick = ()=>{
+      localStorage.removeItem(tokenKey);
+      toast("Sesión cerrada","t-ok");
+      showLogin();
+    };
+
+    // ===== FUNCIONES DE PANEL =====
+    document.getElementById("runCron").onclick = async ()=>{
+      const token = localStorage.getItem(tokenKey);
+      try{
+        const res = await fetch(apiBase+"/admin/payments/cron/run",{method:"POST",headers:{Authorization:"Bearer "+token}});
+        const data = await res.json();
+        document.getElementById("cronResult").textContent=JSON.stringify(data,null,2);
+        toast(data.success?"Cron ejecutado":"Error en cron",data.success?"t-ok":"t-err");
+      }catch(e){toast("Error ejecutando cron","t-err");}
+    };
+
+    document.getElementById("auditBtn").onclick = async ()=>{
+      const token = localStorage.getItem(tokenKey);
+      const tx = document.getElementById("txHash").value.trim();
+      if(!tx)return toast("Ingresa un hash","t-err");
+      try{
+        const res = await fetch(apiBase+"/admin/payments/audit/"+tx,{headers:{Authorization:"Bearer "+token}});
+        const data = await res.json();
+        document.getElementById("auditBox").textContent=JSON.stringify(data,null,2);
+        toast(data.success?"Auditoría OK":"No verificada",data.success?"t-ok":"t-err");
+      }catch(e){toast("Error auditando","t-err");}
+    };
+
+    document.getElementById("refreshBtn").onclick = loadOrders;
+    async function loadOrders(){
+      const token = localStorage.getItem(tokenKey);
+      const qs = new URLSearchParams();
+      const s=document.getElementById("fStatus").value,t=document.getElementById("fType").value;
+      if(s)qs.set("status",s);if(t)qs.set("type",t);
+      try{
+        const res = await fetch(apiBase+"/admin/payments/orders?"+qs,{headers:{Authorization:"Bearer "+token}});
+        const data = await res.json();
+        const tbody=document.getElementById("ordersBody");
+        tbody.innerHTML="";
+        if(!data.data||data.data.length===0){tbody.innerHTML="<tr><td colspan='7' class='muted'>Sin datos</td></tr>";return;}
+        data.data.forEach(r=>{
+          const s=r.status.toUpperCase(),map={PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
+          const tx=r.txHash?`<a href='https://bscscan.com/tx/${r.txHash}' target='_blank' class='muted'>${r.txHash.slice(0,10)}…</a>`:"—";
+          tbody.innerHTML+=`<tr><td>${new Date(r.createdAt).toLocaleString()}</td><td>${r.modelId?.name||"—"}</td><td>${r.amount}</td><td>${r.currency}</td><td>${r.type}</td><td><span class="badge ${map[s]||"b-pending"}">${s}</span></td><td>${tx}</td></tr>`;
+        });
+      }catch(e){toast("Error cargando órdenes","t-err");}
+    }
+
+    checkSession();
   </script>
 </body>
 </html>
