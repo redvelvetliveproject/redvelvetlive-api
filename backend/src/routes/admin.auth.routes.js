@@ -1,55 +1,47 @@
 // ============================================
-// 🔐 RedVelvetLive — Rutas de Autenticación Admin (PRO FINAL)
+// 🔐 RedVelvetLive — Rutas de Autenticación Administrativa (PRO FINAL)
 // ============================================
 //
-// Controla el acceso administrativo al panel y las rutas protegidas.
+// Gestiona:
+//   ✅ Login del administrador (email + clave .env)
+//   ✅ Verificación del token JWT activo
+//   ✅ Logout (borrado seguro de cookie)
 //
-// Incluye:
-//   ✅ /api/admin/login    → login con ADMIN_EMAIL + ADMIN_SECRET_KEY
-//   ✅ /api/admin/verify   → verifica token JWT activo
-//   ✅ /api/admin/logout   → cierra sesión (borra cookie)
+// Usa los controladores:
+//   - loginAdmin()
+//   - verifyToken()
+//   - logoutAdmin()
 //
-// Requiere:
-//   - controllers/admin.auth.controller.js
-//   - middleware/adminAuth.js
+// Middleware:
+//   - adminAuth.js → protege las rutas seguras
 // ============================================
 
 import express from "express";
-import {
-  loginAdmin,
-  verifyToken,
-  logoutAdmin,
-} from "../controllers/admin.auth.controller.js";
+import { loginAdmin, verifyToken, logoutAdmin } from "../controllers/admin.auth.controller.js";
 import adminAuth from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
 // ============================================
-// 🧩 Rutas Públicas (sin token)
+// 🔑 1️⃣ LOGIN ADMINISTRATIVO
 // ============================================
-
-/**
- * 🔑 POST /api/admin/login
- * Inicia sesión administrativa
- * Requiere body: { email, key }
- */
+// POST /api/admin/login
+// Entrada esperada: { email, key }
 router.post("/login", loginAdmin);
 
 // ============================================
-// 🔒 Rutas Protegidas (requieren token JWT válido)
+// 🧩 2️⃣ VERIFICAR TOKEN ACTIVO
 // ============================================
-
-/**
- * ✅ GET /api/admin/verify
- * Verifica que el token JWT actual sea válido.
- * Usa middleware adminAuth.
- */
+// GET /api/admin/verify
+// Solo accesible si el token JWT es válido (via cookie o header)
 router.get("/verify", adminAuth, verifyToken);
 
-/**
- * 🚪 POST /api/admin/logout
- * Cierra sesión y elimina cookie del navegador.
- */
-router.post("/logout", adminAuth, logoutAdmin);
+// ============================================
+// 🚪 3️⃣ LOGOUT ADMINISTRATIVO
+// ============================================
+// POST /api/admin/logout
+// Elimina cookie y finaliza sesión segura
+router.post("/logout", logoutAdmin);
 
 export default router;
+
