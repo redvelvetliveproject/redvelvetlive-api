@@ -9,23 +9,27 @@ import morgan from "morgan";
 import helmet from "helmet";
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import path from "path";
+import { fileURLToPath } from "url";
+
 import connectDB from "./config/db.js";
 
 // 🧩 Rutas principales
 import modelsPublicRoutes from "./routes/models.public.routes.js";
 import paymentsRoutes from "./routes/payments.routes.js";
 
-// 🔐 Administración (login + panel seguro)
+// 🔐 Administración
 import adminAuthRoutes from "./routes/admin.auth.routes.js";
 import paymentsAdminRoutes from "./routes/payments.admin.routes.js";
 import adminAuth from "./middleware/adminAuth.js";
 
-// 🕒 Cron de pagos (verificación on-chain automática)
+// 🕒 Cron de pagos
 import { startPaymentsCron } from "./jobs/payments.cron.js";
 
 // ⚙️ Configuración base
 dotenv.config();
 const app = express();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // =========================
 // 🧠 Middlewares globales
@@ -40,10 +44,10 @@ app.use(
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // ✅ requerido para autenticación JWT vía cookie
-app.use(helmet({ crossOriginResourcePolicy: false })); // seguridad HTTP
-app.use(compression()); // 🔧 GZIP para mejorar rendimiento
-app.use(morgan("dev")); // logs de peticiones HTTP
+app.use(cookieParser()); // ✅ necesario para autenticación JWT vía cookie
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(compression()); // 🔧 compresión GZIP
+app.use(morgan("dev")); // logs HTTP
 
 // =========================
 // 🗄️ Conexión a MongoDB
@@ -56,7 +60,7 @@ connectDB()
 // 🌐 Rutas principales
 // =========================
 
-// 🩺 Health check (para monitoreo y uptime)
+// 🩺 Health check (monitoreo y uptime)
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -78,14 +82,22 @@ app.use("/api/models", modelsPublicRoutes);
 app.use("/api/payments", paymentsRoutes);
 
 // =========================
-// 🔐 Rutas administrativas (protegidas con JWT)
+// 🔐 Administración protegida con JWT
 // =========================
 
-// Login administrativo (devuelve token JWT)
+// Login administrativo (POST /api/admin/login)
 app.use("/api/admin", adminAuthRoutes);
 
-// Sección de pagos administrativos (protegida)
+// Rutas de pagos administrativas (protegidas)
 app.use("/api/admin/payments", adminAuth, paymentsAdminRoutes);
+
+// =========================
+// 🖥️ Servir Panel Admin desde el backend
+// =========================
+// Esto permite abrir directamente: http://localhost:4000/admin
+const adminPath = path.join(__dirname, "../admin");
+app.use("/admin", express.static(adminPath));
+console.log(`🧩 Panel Admin servido desde: ${adminPath}`);
 
 // =========================
 // ⚠️ Manejador global de errores
@@ -99,17 +111,14 @@ app.use((err, req, res, next) => {
 });
 
 // =========================
-// 🚀 Servidor activo
+// 🚀 Iniciar servidor
 // =========================
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 API RedVelvetLive corriendo en puerto ${PORT}`);
-  console.log(
-    `🩺 Health check: ${
-      process.env.PUBLIC_URL || "http://localhost:" + PORT
-    }/api/health`
-  );
+  console.log(`🩺 Health check: ${process.env.PUBLIC_URL || "http://localhost:" + PORT}/api/health`);
   console.log(`🌐 Entorno: ${process.env.NODE_ENV}`);
+  console.log(`🔑 Panel Admin: ${process.env.PUBLIC_URL || "http://localhost:" + PORT}/admin`);
 });
 
 // =========================
