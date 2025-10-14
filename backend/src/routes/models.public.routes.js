@@ -1,148 +1,136 @@
-/**
- * 📡 RedVelvetLive — Rutas públicas de Modelos (versión PRO FINAL)
- * -----------------------------------------------------------------
- * ✅ Endpoints:
- *   - GET /api/models           → listado público con búsqueda y scroll infinito
- *   - GET /api/models/:slug     → perfil público optimizado
- */
+// ============================================
+// 🌹 RedVelvetLive — Rutas Públicas de Modelos (PRO FINAL)
+// ============================================
+//
+// API pública para mostrar información segura de las modelos.
+// Incluye:
+//   ✅ Listado filtrado (activos, país, búsqueda, destacados)
+//   ✅ Perfil individual (por ID o wallet)
+//   ✅ Resultados seguros (sin exponer datos internos ni contraseñas)
+//   ✅ Optimizado para el frontend y el buscador de modelos
+//
+// Compatible con el esquema extendido ModelUser.js
+// ============================================
 
 import express from "express";
-import Model from "../models/Model.js";
-import cache from "../middleware/cache.js";
+import ModelUser from "../models/ModelUser.js";
 
 const router = express.Router();
 
-/**
- * 🧭 GET /api/models
- * Lista pública con soporte para:
- * - ?page=1&limit=20
- * - ?search=valeria
- * - ?country=Colombia
- * - ?locale=es
- * - ?sort=popularity|recent
- * - ?isOnline=true
- */
+/* ==========================================================
+   ✅ 1️⃣ Listar modelos públicos (GET /api/models)
+   ========================================================== */
 router.get("/", async (req, res) => {
   try {
     const {
-      page = 1,
-      limit = 20,
-      search = "",
+      limit = 30,
+      skip = 0,
       country,
-      locale,
-      sort = "popularity",
-      isOnline,
+      featured,
+      ambassador,
+      q,
+      sort = "recent",
     } = req.query;
 
-    // 🧠 Filtros dinámicos
-    const query = {};
-    if (search) query.name = { $regex: search, $options: "i" };
-    if (country) query.country = country;
-    if (locale) query.locale = locale;
-    if (isOnline !== undefined) query.isOnline = isOnline === "true";
+    const query = { status: "ACTIVE" };
 
-    // 🔀 Ordenamiento
-    const sortOptions = {
-      popularity: { popularity: -1 },
-      recent: { createdAt: -1 },
-      name: { name: 1 },
-    };
+    // 🔎 Filtros dinámicos
+    if (country) query.country = new RegExp(country, "i");
+    if (featured) query.featured = featured === "true";
+    if (ambassador) query.ambassador = ambassador === "true";
+    if (q) {
+      query.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { country: { $regex: q, $options: "i" } },
+      ];
+    }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    // 🔄 Ordenamiento
+    let sortOption = { createdAt: -1 };
+    if (sort === "popular") sortOption = { followers: -1 };
+    if (sort === "earnings") sortOption = { totalEarnings: -1 };
+    if (sort === "featured") sortOption = { featured: -1 };
 
     const [models, total] = await Promise.all([
-      Model.find(query)
+      ModelUser.find(query)
+        .sort(sortOption)
+        .skip(Number(skip))
+        .limit(Number(limit))
         .select(
-          "name bio avatar country locale playbackId slug stats popularity isOnline"
+          "name country wallet status featured ambassador avatarUrl bannerUrl totalEarnings followers liveStatus createdAt"
         )
-        .sort(sortOptions[sort] || sortOptions.popularity)
-        .skip(skip)
-        .limit(parseInt(limit))
         .lean(),
-      Model.countDocuments(query),
+      ModelUser.countDocuments(query),
     ]);
 
-    // 🔧 Normalización visual (para frontend)
-    const formatted = models.map((m) => ({
-      ...m,
-      avatar: m.avatar || {
-        small: "/assets/img/default-avatar.webp",
-        large: "/assets/img/default-avatar.webp",
-      },
-      popularity:
-        m.popularity || (m.stats?.followers || 0) + (m.stats?.tips || 0),
+    // 🔒 Sanitizar respuesta pública
+    const safeModels = models.map((m) => ({
+      id: m._id,
+      name: m.name,
+      country: m.country,
+      wallet: m.wallet,
+      status: m.status,
+      featured: m.featured,
+      ambassador: m.ambassador,
+      avatarUrl: m.avatarUrl,
+      bannerUrl: m.bannerUrl,
+      totalEarnings: m.totalEarnings,
+      followers: m.followers,
+      liveStatus: m.liveStatus,
+      createdAt: m.createdAt,
     }));
 
     res.status(200).json({
       success: true,
       total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / limit),
-      results: formatted,
+      count: safeModels.length,
+      data: safeModels,
+      timestamp: new Date(),
     });
-  } catch (err) {
-    console.error("❌ Error en /api/models:", err);
+  } catch (error) {
+    console.error("❌ Error listando modelos públicos:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno al obtener los modelos.",
+      message: "Error interno al listar modelos.",
+      error: error.message,
     });
   }
 });
 
-/**
- * 🧠 GET /api/models/:slug
- * Devuelve los datos del perfil público de una modelo específica
- */
-router.get("/:slug", cache(60), async (req, res) => {
+/* ==========================================================
+   ✅ 2️⃣ Obtener perfil público (GET /api/models/:id)
+   ========================================================== */
+router.get("/:id", async (req, res) => {
   try {
-    const slug = req.params.slug.trim().toLowerCase();
-    if (!slug.match(/^[a-z0-9-]+$/)) {
-      return res.status(400).json({
-        success: false,
-        message: "Slug inválido.",
-      });
-    }
-
-    const model = await Model.findOne({ slug })
-      .select(
-        "name bio avatar wallet country locale playbackId gallery socialLinks stats popularity isOnline"
-      )
-      .lean();
+    const { id } = req.params;
+    const model =
+      (await ModelUser.findOne({
+        $or: [{ _id: id }, { wallet: id.toLowerCase() }],
+        status: "ACTIVE",
+      })
+        .select(
+          "name country bio wallet featured ambassador avatarUrl bannerUrl totalEarnings followers liveStatus createdAt"
+        )
+        .lean()) || null;
 
     if (!model) {
       return res.status(404).json({
         success: false,
-        message: "Modelo no encontrada",
+        message: "Modelo no encontrada o inactiva.",
       });
     }
 
-    // 🔧 Normalización visual
-    const formatted = {
-      ...model,
-      avatar: model.avatar || {
-        small: "/assets/img/default-avatar.webp",
-        large: "/assets/img/default-avatar.webp",
-      },
-      gallery:
-        model.gallery?.length > 0
-          ? model.gallery
-          : ["/assets/img/default-gallery.webp"],
-      stats: model.stats || { followers: 0, tips: 0 },
-      popularity:
-        model.popularity ||
-        (model.stats?.followers || 0) + (model.stats?.tips || 0),
-      socialLinks: model.socialLinks || {},
-    };
-
     res.status(200).json({
       success: true,
-      model: formatted,
+      data: model,
+      timestamp: new Date(),
     });
-  } catch (err) {
-    console.error("❌ Error en /api/models/:slug:", err);
+  } catch (error) {
+    console.error("❌ Error obteniendo perfil público:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno del servidor",
+      message: "Error interno al obtener el perfil.",
+      error: error.message,
     });
   }
 });
