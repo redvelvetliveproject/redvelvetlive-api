@@ -1,30 +1,29 @@
 // ============================================
-// 🔐 RedVelvetLive — Controlador de Autenticación Admin (PRO)
+// 🔐 RedVelvetLive — Controlador de Autenticación Admin (PRO FINAL)
 // ============================================
 //
 // Gestiona:
-//  - Login del administrador (clave maestra o credenciales .env)
-//  - Verificación del token JWT activo
-//  - Logout (borrado de cookie)
+//   ✅ Login del administrador (credenciales .env)
+//   ✅ Verificación de token JWT activo
+//   ✅ Logout seguro
 //
-// Requiere variables .env:
-//  - ADMIN_EMAIL
-//  - ADMIN_SECRET_KEY
-//  - JWT_SECRET
-//  - SESSION_EXPIRATION_HOURS
+// Requiere variables en .env:
+//   - ADMIN_EMAIL
+//   - ADMIN_SECRET_KEY
+//   - JWT_SECRET
+//   - SESSION_EXPIRATION_HOURS
 // ============================================
 
 import jwt from "jsonwebtoken";
 
-/**
- * 🧠 Login del administrador
- * POST /api/admin/login
- */
+// ==========================
+// 🔑 1️⃣ LOGIN ADMINISTRATIVO
+// ==========================
 export async function loginAdmin(req, res) {
   try {
     const { email, key } = req.body;
 
-    // ✅ Validaciones básicas
+    // ⚠️ Validaciones básicas
     if (!email || !key) {
       return res.status(400).json({
         success: false,
@@ -32,38 +31,38 @@ export async function loginAdmin(req, res) {
       });
     }
 
-    // ✅ Comparar con las credenciales seguras del entorno
-    if (
-      email !== process.env.ADMIN_EMAIL ||
-      key !== process.env.ADMIN_SECRET_KEY
-    ) {
+    // 🧩 Comparar con las credenciales del entorno (.env)
+    const validEmail = email.trim().toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase();
+    const validKey = key === process.env.ADMIN_SECRET_KEY;
+
+    if (!validEmail || !validKey) {
+      console.warn(`🚫 Intento de login fallido: ${email}`);
       return res.status(401).json({
         success: false,
         message: "Credenciales inválidas. Acceso denegado.",
       });
     }
 
-    // 🧾 Generar token JWT
-    const expiresIn =
-      (Number(process.env.SESSION_EXPIRATION_HOURS) || 24) * 3600; // segundos
-    const token = jwt.sign(
-      {
-        role: "admin",
-        email,
-        access: "panel",
-        issuedAt: Date.now(),
-      },
-      process.env.JWT_SECRET,
-      { expiresIn }
-    );
+    // 🧠 Generar token JWT
+    const expiresIn = (Number(process.env.SESSION_EXPIRATION_HOURS) || 24) * 3600; // segundos
+    const tokenPayload = {
+      role: "admin",
+      email,
+      access: "panel",
+      iat: Math.floor(Date.now() / 1000),
+    };
 
-    // 🍪 Guardar cookie HTTP-only segura
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn });
+
+    // 🍪 Configurar cookie HTTP-only segura
     res.cookie("rvl_admin_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // solo HTTPS en producción
       sameSite: "None",
-      maxAge: expiresIn * 1000,
+      maxAge: expiresIn * 1000, // milisegundos
     });
+
+    console.log(`✅ Admin ${email} inició sesión correctamente.`);
 
     return res.status(200).json({
       success: true,
@@ -84,13 +83,12 @@ export async function loginAdmin(req, res) {
   }
 }
 
-/**
- * 🧩 Verificación del token activo
- * GET /api/admin/verify
- */
+// ==========================
+// 🧩 2️⃣ VERIFICAR TOKEN ACTIVO
+// ==========================
 export async function verifyToken(req, res) {
   try {
-    // Este punto se alcanza solo si adminAuth() ya validó el token
+    // Este punto solo se alcanza si adminAuth() validó el JWT
     const admin = req.admin;
 
     if (!admin) {
@@ -114,10 +112,9 @@ export async function verifyToken(req, res) {
   }
 }
 
-/**
- * 🚪 Logout administrativo
- * POST /api/admin/logout
- */
+// ==========================
+// 🚪 3️⃣ LOGOUT ADMINISTRATIVO
+// ==========================
 export async function logoutAdmin(req, res) {
   try {
     res.clearCookie("rvl_admin_token", {
@@ -125,6 +122,8 @@ export async function logoutAdmin(req, res) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "None",
     });
+
+    console.log("👋 Sesión administrativa cerrada correctamente.");
 
     return res.status(200).json({
       success: true,
@@ -138,3 +137,4 @@ export async function logoutAdmin(req, res) {
     });
   }
 }
+
