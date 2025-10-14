@@ -1,205 +1,197 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>RedVelvetLive · Panel Administrativo</title>
+  <title>🌹 RedVelvetLive · Panel Administrativo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
-      --bg:#0f1115;--panel:#151822;--soft:#191c27;--text:#e9ecf1;--muted:#9aa3b2;
-      --brand:#e31221;--ok:#16a34a;--warn:#f59e0b;--err:#ef4444;--br:14px;
+      --bg:#0f1115;--panel:#151822;--soft:#191c27;--text:#e9ecf1;
+      --muted:#9aa3b2;--brand:#e31221;--ok:#16a34a;--warn:#f59e0b;
+      --err:#ef4444;--br:14px;
     }
     *{box-sizing:border-box}
-    body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--text);
-      background:linear-gradient(180deg,#0b0c10,#10131a)}
-    .container{max-width:1100px;margin:auto;padding:24px}
+    body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;
+      color:var(--text);
+      background:linear-gradient(180deg,#0b0c10,#10131a);
+      min-height:100vh;display:flex;align-items:center;justify-content:center}
     .card{background:var(--panel);border:1px solid #232633;border-radius:var(--br);
-      box-shadow:0 10px 24px rgba(0,0,0,.25);padding:20px;margin-bottom:18px}
+      box-shadow:0 10px 24px rgba(0,0,0,.25);padding:24px;width:100%;max-width:1100px;margin:20px}
     h1{font-size:24px;margin:0 0 12px}
     h2{font-size:18px;margin:0 0 8px}
-    .grid{display:grid;gap:16px}
-    .grid-2{grid-template-columns:1fr 1fr}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    input,select,button{border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;
-      color:var(--text);padding:10px 12px}
-    input::placeholder{color:#6b7280}
+    input,button,select{border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;
+      color:var(--text);padding:10px 12px;font-size:14px}
     button{background:var(--brand);border-color:var(--brand);font-weight:700;cursor:pointer}
     button.secondary{background:#1f2431;border-color:#2a2e3b}
     button:disabled{opacity:.6;cursor:not-allowed}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:10px;border-bottom:1px solid #202433}
-    th{color:#c3c9d4;text-align:left;background:var(--soft);position:sticky;top:0}
-    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+    th,td{padding:8px 10px;border-bottom:1px solid #202433;text-align:left}
+    th{color:#c3c9d4;background:var(--soft);position:sticky;top:0}
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px}
     .b-ok{background:#0f2b18;color:#6df0a7;border:1px solid #1a6a43}
     .b-warn{background:#2b230f;color:#ffd27a;border:1px solid #6a531a}
     .b-err{background:#2b1111;color:#ff9aaa;border:1px solid #6a1a1a}
     .b-pending{background:#1a2030;color:#9ab8ff;border:1px solid #334a85}
-    .toast{position:fixed;right:20px;bottom:-100px;transition:.35s;opacity:0;min-width:260px;
-      max-width:360px;padding:12px 16px;border-radius:10px;color:#fff;font-weight:700;
-      box-shadow:0 10px 28px rgba(0,0,0,.5);z-index:9999}
-    .toast.show{bottom:20px;opacity:1}
-    .t-ok{background:var(--ok)} .t-err{background:var(--err)} .t-info{background:#2563eb}
     .hr{height:1px;background:#212436;margin:14px 0}
-    .footer{margin-top:18px;color:#7c8597}
+    .muted{color:var(--muted)}
+    .right{text-align:right}
+    #toast{position:fixed;bottom:-100px;right:20px;transition:.4s;opacity:0;
+      background:#2563eb;color:#fff;font-weight:700;padding:10px 14px;border-radius:10px;
+      box-shadow:0 10px 20px rgba(0,0,0,.4)}
+    #toast.show{bottom:20px;opacity:1}
+    .hidden{display:none!important}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div id="loginCard" class="card" style="max-width:420px;margin:auto;margin-top:60px;display:none">
-      <h1>🔐 Ingreso Administrativo</h1>
-      <p class="muted">Usa las credenciales del .env para acceder.</p>
-      <div class="hr"></div>
-      <input id="email" type="email" placeholder="admin@redvelvetlive.com" style="width:100%;margin-bottom:10px" />
-      <input id="password" type="password" placeholder="Contraseña" style="width:100%;margin-bottom:16px" />
-      <button id="loginBtn" style="width:100%">Iniciar sesión</button>
-    </div>
-
-    <div id="panel" style="display:none">
-      <div class="card">
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <h1>🌹 RedVelvetLive — Panel Administrativo</h1>
-          <button id="logoutBtn" class="secondary">Cerrar sesión</button>
-        </div>
-        <p class="muted">Gestión de pagos, auditorías on-chain y cron de verificación.</p>
-      </div>
-
-      <div class="grid grid-2">
-        <div class="card">
-          <h2>⏱ Cron de verificación</h2>
-          <button id="runCron">▶ Ejecutar cron ahora</button>
-          <div id="cronResult" class="muted" style="margin-top:10px"></div>
-        </div>
-        <div class="card">
-          <h2>🧾 Auditoría de transacción</h2>
-          <div class="row">
-            <input id="txHash" type="text" placeholder="0x... tx hash" style="flex:1" />
-            <button id="auditBtn">Auditar</button>
-          </div>
-          <div id="auditBox" class="muted" style="margin-top:10px"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>💰 Órdenes de Pago</h2>
-        <div class="row" style="margin-bottom:10px">
-          <select id="fStatus">
-            <option value="">Estado</option><option>PENDING</option>
-            <option>PROCESSING</option><option>CONFIRMED</option>
-            <option>FAILED</option><option>CANCELLED</option>
-          </select>
-          <select id="fType">
-            <option value="">Tipo</option><option>TIP</option><option>WITHDRAWAL</option>
-            <option>DISTRIBUTION</option><option>BONUS</option>
-          </select>
-          <button id="refreshBtn">🔄 Actualizar</button>
-        </div>
-        <table>
-          <thead><tr><th>Fecha</th><th>Modelo</th><th>Monto</th><th>Moneda</th>
-          <th>Tipo</th><th>Estado</th><th>Tx</th></tr></thead>
-          <tbody id="ordersBody"><tr><td colspan="7" class="muted">Sin datos...</td></tr></tbody>
-        </table>
-      </div>
-
-      <div class="footer">
-        <p>Panel protegido con JWT · RedVelvetLive © 2025</p>
-      </div>
+  <div id="loginView" class="card">
+    <h1>🔐 Ingreso Administrativo</h1>
+    <p class="muted">Accede al panel seguro de RedVelvetLive</p>
+    <div class="row">
+      <input id="email" type="email" placeholder="Correo (ADMIN_EMAIL)" style="flex:1" />
+      <input id="key" type="password" placeholder="Clave (ADMIN_SECRET_KEY)" style="flex:1" />
+      <button id="loginBtn">Ingresar</button>
     </div>
   </div>
 
-  <div id="toast" class="toast">listo</div>
+  <div id="panelView" class="card hidden">
+    <h1>🌹 RedVelvetLive — Panel Administrativo</h1>
+    <div class="row right">
+      <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+    </div>
+    <div class="hr"></div>
+
+    <div class="row">
+      <button id="runCron">▶ Ejecutar Cron</button>
+      <input id="txHash" type="text" placeholder="0x... Hash transacción" style="flex:1" />
+      <button id="auditBtn">Auditar</button>
+      <button id="refreshBtn">🔄 Cargar Órdenes</button>
+    </div>
+
+    <table id="ordersTable">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Modelo</th>
+          <th>Monto</th>
+          <th>Moneda</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Tx</th>
+        </tr>
+      </thead>
+      <tbody id="ordersBody">
+        <tr><td colspan="7" class="muted">Sin datos…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="toast"></div>
 
   <script>
-    const toastEl = document.getElementById("toast");
-    function toast(msg,type="t-info"){toastEl.className="toast "+type;toastEl.textContent=msg;
-      requestAnimationFrame(()=>{toastEl.classList.add("show");setTimeout(()=>toastEl.classList.remove("show"),2500);});}
+    const API = location.origin.includes("localhost")
+      ? "http://localhost:4000/api"
+      : location.origin + "/api";
+    const $ = (s)=>document.querySelector(s);
+    const toast=(m,t="info")=>{
+      const el=$("#toast");
+      el.textContent=m;
+      el.style.background=t==="ok"?"#16a34a":t==="err"?"#ef4444":"#2563eb";
+      el.classList.add("show");
+      setTimeout(()=>el.classList.remove("show"),2500);
+    };
 
-    const apiBase = location.origin.includes("localhost") ? "http://localhost:4000/api" : location.origin + "/api";
-    const tokenKey = "rvl_admin_token";
+    const loginView=$("#loginView"),panelView=$("#panelView");
 
-    const loginCard = document.getElementById("loginCard");
-    const panel = document.getElementById("panel");
-
-    function showLogin(){loginCard.style.display="block";panel.style.display="none";}
-    function showPanel(){loginCard.style.display="none";panel.style.display="block";}
-
-    async function checkSession(){
-      const token = localStorage.getItem(tokenKey);
-      if(!token){showLogin();return;}
+    async function verifySession(){
       try{
-        const res = await fetch(apiBase+"/admin/verify",{headers:{Authorization:"Bearer "+token}});
-        const data = await res.json();
-        if(data.success) showPanel(); else showLogin();
-      }catch{showLogin();}
-    }
-
-    document.getElementById("loginBtn").onclick = async ()=>{
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
-      if(!email||!password)return toast("Ingresa email y contraseña","t-err");
-      try{
-        const res = await fetch(apiBase+"/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
-        const data = await res.json();
+        const res=await fetch(API+"/admin/verify",{credentials:"include"});
+        const data=await res.json();
         if(data.success){
-          localStorage.setItem(tokenKey,data.token);
-          toast("Bienvenido "+email,"t-ok");
-          showPanel();loadOrders();
-        }else toast(data.message||"Error","t-err");
-      }catch(e){toast("Error al iniciar sesión","t-err");}
-    };
-
-    document.getElementById("logoutBtn").onclick = ()=>{
-      localStorage.removeItem(tokenKey);
-      toast("Sesión cerrada","t-ok");
-      showLogin();
-    };
-
-    // ===== FUNCIONES DE PANEL =====
-    document.getElementById("runCron").onclick = async ()=>{
-      const token = localStorage.getItem(tokenKey);
-      try{
-        const res = await fetch(apiBase+"/admin/payments/cron/run",{method:"POST",headers:{Authorization:"Bearer "+token}});
-        const data = await res.json();
-        document.getElementById("cronResult").textContent=JSON.stringify(data,null,2);
-        toast(data.success?"Cron ejecutado":"Error en cron",data.success?"t-ok":"t-err");
-      }catch(e){toast("Error ejecutando cron","t-err");}
-    };
-
-    document.getElementById("auditBtn").onclick = async ()=>{
-      const token = localStorage.getItem(tokenKey);
-      const tx = document.getElementById("txHash").value.trim();
-      if(!tx)return toast("Ingresa un hash","t-err");
-      try{
-        const res = await fetch(apiBase+"/admin/payments/audit/"+tx,{headers:{Authorization:"Bearer "+token}});
-        const data = await res.json();
-        document.getElementById("auditBox").textContent=JSON.stringify(data,null,2);
-        toast(data.success?"Auditoría OK":"No verificada",data.success?"t-ok":"t-err");
-      }catch(e){toast("Error auditando","t-err");}
-    };
-
-    document.getElementById("refreshBtn").onclick = loadOrders;
-    async function loadOrders(){
-      const token = localStorage.getItem(tokenKey);
-      const qs = new URLSearchParams();
-      const s=document.getElementById("fStatus").value,t=document.getElementById("fType").value;
-      if(s)qs.set("status",s);if(t)qs.set("type",t);
-      try{
-        const res = await fetch(apiBase+"/admin/payments/orders?"+qs,{headers:{Authorization:"Bearer "+token}});
-        const data = await res.json();
-        const tbody=document.getElementById("ordersBody");
-        tbody.innerHTML="";
-        if(!data.data||data.data.length===0){tbody.innerHTML="<tr><td colspan='7' class='muted'>Sin datos</td></tr>";return;}
-        data.data.forEach(r=>{
-          const s=r.status.toUpperCase(),map={PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
-          const tx=r.txHash?`<a href='https://bscscan.com/tx/${r.txHash}' target='_blank' class='muted'>${r.txHash.slice(0,10)}…</a>`:"—";
-          tbody.innerHTML+=`<tr><td>${new Date(r.createdAt).toLocaleString()}</td><td>${r.modelId?.name||"—"}</td><td>${r.amount}</td><td>${r.currency}</td><td>${r.type}</td><td><span class="badge ${map[s]||"b-pending"}">${s}</span></td><td>${tx}</td></tr>`;
-        });
-      }catch(e){toast("Error cargando órdenes","t-err");}
+          loginView.classList.add("hidden");
+          panelView.classList.remove("hidden");
+          loadOrders();
+        }
+      }catch{}
     }
 
-    checkSession();
+    $("#loginBtn").onclick=async()=>{
+      const email=$("#email").value.trim();
+      const key=$("#key").value.trim();
+      if(!email||!key)return toast("Campos incompletos","err");
+      try{
+        const res=await fetch(API+"/admin/login",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({email,key}),
+          credentials:"include"
+        });
+        const data=await res.json();
+        if(data.success){
+          toast("Bienvenido "+data.admin.email,"ok");
+          loginView.classList.add("hidden");
+          panelView.classList.remove("hidden");
+          loadOrders();
+        }else toast(data.message||"Acceso denegado","err");
+      }catch{toast("Error de conexión","err")}
+    };
+
+    $("#logoutBtn").onclick=async()=>{
+      await fetch(API+"/admin/logout",{method:"POST",credentials:"include"});
+      panelView.classList.add("hidden");
+      loginView.classList.remove("hidden");
+      toast("Sesión cerrada","ok");
+    };
+
+    // ======= Funciones administrativas =======
+    $("#runCron").onclick=async()=>{
+      try{
+        const res=await fetch(API+"/admin/payments/cron/run",{
+          method:"POST",credentials:"include"
+        });
+        const data=await res.json();
+        if(data.success)toast("Cron ejecutado","ok");else toast("Error al ejecutar","err");
+      }catch{toast("Error","err")}
+    };
+
+    $("#auditBtn").onclick=async()=>{
+      const tx=$("#txHash").value.trim();
+      if(!tx)return toast("Ingresa hash","err");
+      try{
+        const res=await fetch(API+"/admin/payments/audit/"+tx,{credentials:"include"});
+        const data=await res.json();
+        if(data.success)toast("Tx verificada ✅","ok");
+        else toast("No verificada","warn");
+      }catch{toast("Error auditando","err")}
+    };
+
+    async function loadOrders(){
+      const tbody=$("#ordersBody");
+      tbody.innerHTML="<tr><td colspan='7' class='muted'>Cargando…</td></tr>";
+      try{
+        const res=await fetch(API+"/admin/payments/orders",{credentials:"include"});
+        const data=await res.json();
+        if(!data.success)return toast("Error obteniendo órdenes","err");
+        tbody.innerHTML="";
+        data.data.forEach(o=>{
+          const s=(o.status||"").toUpperCase();
+          const map={PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
+          const tr=document.createElement("tr");
+          tr.innerHTML=`
+            <td>${new Date(o.createdAt).toLocaleString()}</td>
+            <td>${o.modelId?.name||"—"}</td>
+            <td><b>${o.amount}</b></td>
+            <td>${o.currency}</td>
+            <td>${o.type}</td>
+            <td><span class="badge ${map[s]||"b-pending"}">${s}</span></td>
+            <td>${o.txHash?`<a href='https://bscscan.com/tx/${o.txHash}' target='_blank'>${o.txHash.slice(0,10)}…</a>`:"—"}</td>`;
+          tbody.appendChild(tr);
+        });
+      }catch{toast("Error cargando órdenes","err")}
+    }
+
+    verifySession();
   </script>
 </body>
 </html>
-
 
