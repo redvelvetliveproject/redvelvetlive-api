@@ -2,14 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>RedVelvetLive · Panel Admin</title>
+  <title>🌹 RedVelvetLive · Panel Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{
-      --bg:#0f1115;--panel:#151822;--soft:#191c27;--text:#e9ecf1;--muted:#9aa3b2;--brand:#e31221;--ok:#16a34a;--warn:#f59e0b;--err:#ef4444;--br:14px;
+    :root {
+      --bg:#0f1115;--panel:#151822;--soft:#191c27;
+      --text:#e9ecf1;--muted:#9aa3b2;--brand:#e31221;
+      --ok:#16a34a;--warn:#f59e0b;--err:#ef4444;--br:14px;
     }
     *{box-sizing:border-box}
-    body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--text);background:linear-gradient(180deg,#0b0c10,#10131a)}
+    body{margin:0;font:14px/1.5 'Inter',system-ui,Segoe UI,Roboto;color:var(--text);background:linear-gradient(180deg,#0b0c10,#10131a);min-height:100vh}
     .container{max-width:1100px;margin:auto;padding:24px}
     .card{background:var(--panel);border:1px solid #232633;border-radius:var(--br);box-shadow:0 10px 24px rgba(0,0,0,.25)}
     h1{font-size:24px;margin:0 0 12px}
@@ -17,7 +19,11 @@
     .grid{display:grid;gap:16px}
     .grid-2{grid-template-columns:1fr 1fr}
     .row{display:flex;gap:10px;flex-wrap:wrap}
-    input,select,button{border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;color:var(--text);padding:10px 12px}
+    input,select,button{
+      border-radius:10px;border:1px solid #2a2e3b;background:#0e1118;
+      color:var(--text);padding:10px 12px;transition:all .25s ease;
+    }
+    input:focus,select:focus{outline:none;border-color:var(--brand)}
     input::placeholder{color:#6b7280}
     button{background:var(--brand);border-color:var(--brand);font-weight:700;cursor:pointer}
     button.secondary{background:#1f2431;border-color:#2a2e3b}
@@ -36,28 +42,30 @@
     .toast{position:fixed;right:20px;bottom:-100px;transition:.35s;opacity:0;min-width:260px;max-width:360px;padding:12px 16px;border-radius:10px;color:#fff;font-weight:700;box-shadow:0 10px 28px rgba(0,0,0,.5);z-index:9999}
     .toast.show{bottom:20px;opacity:1}
     .t-ok{background:var(--ok)} .t-err{background:var(--err)} .t-info{background:#2563eb}
-    .pill{display:inline-flex;align-items:center;gap:6px;background:#0e1118;border:1px solid #2a2e3b;border-radius:999px;padding:6px 10px}
     .footer{margin-top:18px;color:#7c8597}
-    .hr{height:1px;background:#212436;margin:14px 0}
-    .code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b0e15;border:1px solid #23263a;border-radius:8px;padding:8px}
+    .tooltip{position:relative;cursor:help}
+    .tooltip:hover::after{
+      content:attr(data-tip);position:absolute;bottom:125%;left:50%;transform:translateX(-50%);
+      background:#22283a;color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;white-space:nowrap;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="card" style="padding:18px">
       <h1>🌹 RedVelvetLive — Panel Administrativo</h1>
-      <p class="muted">Gestión de pagos, auditorías on-chain y cron de verificación.</p>
-      <div class="hr"></div>
+      <p class="muted">Gestión segura de pagos y auditorías on-chain.</p>
+      <div class="hr" style="height:1px;background:#222;margin:12px 0"></div>
 
-      <!-- Configuración -->
+      <!-- 🔐 Autenticación -->
       <div class="grid grid-2">
         <div class="card" style="padding:16px">
-          <h2>🔐 Autenticación</h2>
+          <h2>🔑 Clave de administrador</h2>
           <div class="row">
-            <input id="adminKey" type="password" placeholder="x-admin-key (ADMIN_SECRET_KEY)" style="flex:1" />
+            <input id="adminKey" type="password" placeholder="ADMIN_SECRET_KEY" style="flex:1" />
             <button id="saveKeyBtn">Guardar</button>
           </div>
-          <p class="muted" style="margin-top:8px">Se guarda localmente en <span class="kbd">localStorage</span>.</p>
+          <p class="muted">Se almacena localmente (<span class="kbd">localStorage</span>) para futuras sesiones.</p>
         </div>
 
         <div class="card" style="padding:16px">
@@ -67,295 +75,120 @@
             <button class="secondary" id="useLocal">Local</button>
             <button id="saveApiBtn">Guardar</button>
           </div>
-          <p class="muted" style="margin-top:8px">Se usará para todas las llamadas (models, payments, admin).</p>
         </div>
       </div>
 
-      <div class="hr"></div>
+      <div class="hr" style="height:1px;background:#222;margin:12px 0"></div>
 
-      <!-- Cron & Auditoría -->
+      <!-- Cron y Auditoría -->
       <div class="grid grid-2">
         <div class="card" style="padding:16px">
-          <h2>⏱ Cron de verificación</h2>
-          <p class="muted">Fuerza una corrida del cron que valida órdenes PENDING/PROCESSING on-chain.</p>
+          <h2 class="tooltip" data-tip="Ejecuta manualmente el verificador de pagos pendientes.">⏱ Cron de verificación</h2>
           <div class="row">
             <button id="runCron">▶ Ejecutar cron ahora</button>
-            <span class="pill"><span>Schedule:</span><code class="kbd" id="cronSpec">*/5 * * * *</code></span>
+            <span class="muted">Cada 5 minutos por sistema</span>
           </div>
-          <div id="cronResult" class="code" style="margin-top:10px;display:none"></div>
+          <pre id="cronResult" style="display:none;background:#0e1118;border:1px solid #23263a;border-radius:8px;padding:10px;margin-top:10px;max-height:200px;overflow:auto"></pre>
         </div>
 
         <div class="card" style="padding:16px">
-          <h2>🧾 Auditoría de transacción</h2>
+          <h2 class="tooltip" data-tip="Valida la existencia y estado de una transacción específica.">🧾 Auditoría de transacción</h2>
           <div class="row">
-            <input id="txHash" type="text" placeholder="0x... tx hash" style="flex:1" />
+            <input id="txHash" type="text" placeholder="0x... hash" style="flex:1" />
             <button id="auditBtn">Auditar</button>
           </div>
-          <div id="auditBox" class="code" style="margin-top:10px;display:none"></div>
+          <pre id="auditBox" style="display:none;background:#0e1118;border:1px solid #23263a;border-radius:8px;padding:10px;margin-top:10px;max-height:200px;overflow:auto"></pre>
         </div>
       </div>
 
-      <div class="hr"></div>
+      <div class="hr" style="height:1px;background:#222;margin:12px 0"></div>
 
-      <!-- Filtros / Buscador -->
+      <!-- Órdenes -->
       <div class="card" style="padding:16px">
         <h2>💰 Órdenes de Pago</h2>
         <div class="row" style="margin-bottom:10px">
-          <select id="fStatus">
-            <option value="">Estado (todos)</option>
-            <option>PENDING</option><option>PROCESSING</option>
-            <option>CONFIRMED</option><option>FAILED</option><option>CANCELLED</option>
-          </select>
-          <select id="fType">
-            <option value="">Tipo (todos)</option>
-            <option>TIP</option><option>WITHDRAWAL</option><option>DISTRIBUTION</option><option>BONUS</option>
-          </select>
-          <select id="fCurrency">
-            <option value="">Moneda (todas)</option>
-            <option>ONECOP</option><option>USDT</option>
-          </select>
+          <select id="fStatus"><option value="">Estado</option><option>PENDING</option><option>PROCESSING</option><option>CONFIRMED</option><option>FAILED</option></select>
+          <select id="fType"><option value="">Tipo</option><option>TIP</option><option>WITHDRAWAL</option><option>DISTRIBUTION</option><option>BONUS</option></select>
+          <select id="fCurrency"><option value="">Moneda</option><option>ONECOP</option><option>USDT</option></select>
           <input id="fLimit" type="number" min="1" value="25" style="width:120px" />
           <button id="refreshBtn">🔄 Cargar</button>
         </div>
-
         <div class="card" style="background:#0e1118;border:1px solid #23263a;overflow:auto;max-height:60vh">
-          <table id="ordersTable">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Modelo</th>
-                <th>Monto</th>
-                <th>Moneda</th>
-                <th>Tipo</th>
-                <th>Estado</th>
-                <th>Tx</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="ordersBody">
-              <tr><td colspan="8" class="muted">Sin datos…</td></tr>
-            </tbody>
-          </table>
+          <table id="ordersTable"><thead><tr>
+            <th>Fecha</th><th>Modelo</th><th>Monto</th><th>Moneda</th><th>Tipo</th><th>Estado</th><th>Tx</th><th>Acciones</th>
+          </tr></thead><tbody id="ordersBody"><tr><td colspan="8" class="muted">Sin datos...</td></tr></tbody></table>
         </div>
       </div>
 
-      <div class="footer">
-        <p>Hecho con ❤ por RedVelvetLive — Seguridad: header <span class="kbd">x-admin-key</span></p>
-      </div>
+      <p class="footer">Hecho con ❤ por RedVelvetLive · Seguridad mediante <code>x-admin-key</code></p>
     </div>
   </div>
 
   <div id="toast" class="toast">listo</div>
 
   <script>
-    // ======= Helpers UI =======
-    const $ = (sel) => document.querySelector(sel);
-    const toastEl = $("#toast");
-    function toast(msg, type="t-info"){
-      toastEl.className = "toast " + type;
-      toastEl.textContent = msg;
-      requestAnimationFrame(() => {
-        toastEl.classList.add("show");
-        setTimeout(()=>toastEl.classList.remove("show"), 2600);
-      });
-    }
-    const fmt = (d) => new Date(d).toLocaleString();
-
-    // ======= Estado persistente =======
-    const LS_KEY = "rvl_admin_key";
-    const LS_API = "rvl_api_base";
-
-    const adminKeyInput = $("#adminKey");
-    const apiBaseInput = $("#apiBase");
-    const cronSpec = $("#cronSpec");
-
-    // Defaults
-    const DEF_API = location.origin.includes("localhost")
-      ? "http://localhost:4000/api"
-      : (location.origin + "/api");
-
-    adminKeyInput.value = localStorage.getItem(LS_KEY) || "";
-    apiBaseInput.value = localStorage.getItem(LS_API) || DEF_API;
-
-    $("#saveKeyBtn").onclick = () => {
-      localStorage.setItem(LS_KEY, adminKeyInput.value.trim());
-      toast("Clave admin guardada", "t-ok");
+    const $ = (s)=>document.querySelector(s);
+    const toast=(m,t="t-info")=>{
+      const el=$("#toast");el.className="toast "+t;el.textContent=m;
+      requestAnimationFrame(()=>{el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2500)});
     };
-    $("#saveApiBtn").onclick = () => {
-      localStorage.setItem(LS_API, apiBaseInput.value.trim());
-      toast("API base guardada", "t-ok");
-    };
-    $("#useLocal").onclick = () => {
-      apiBaseInput.value = "http://localhost:4000/api";
-      localStorage.setItem(LS_API, apiBaseInput.value);
-      toast("API local aplicada", "t-ok");
+    const LS_KEY="rvl_admin_key",LS_API="rvl_api_base";
+    const DEF_API=location.origin.includes("localhost")?"http://localhost:4000/api":location.origin+"/api";
+    $("#adminKey").value=localStorage.getItem(LS_KEY)||"";
+    $("#apiBase").value=localStorage.getItem(LS_API)||DEF_API;
+    $("#saveKeyBtn").onclick=()=>{localStorage.setItem(LS_KEY,$("#adminKey").value.trim());toast("Clave guardada","t-ok")};
+    $("#saveApiBtn").onclick=()=>{localStorage.setItem(LS_API,$("#apiBase").value.trim());toast("API guardada","t-ok")};
+    $("#useLocal").onclick=()=>{const v="http://localhost:4000/api";$("#apiBase").value=v;localStorage.setItem(LS_API,v);toast("API local aplicada","t-ok")};
+    const api=()=>($("#apiBase").value||DEF_API).replace(/\/$/,"");
+    const headers=()=>({"Content-Type":"application/json","x-admin-key":localStorage.getItem(LS_KEY)||$("#adminKey").value.trim()});
+    
+    async function safeFetch(url,opt={}){try{const r=await fetch(url,opt);return await r.json();}catch(e){toast("Error de red","t-err");return{success:false,error:e.message}}}
+
+    $("#runCron").onclick=async()=>{
+      const btn=$("#runCron");btn.disabled=true;const d=await safeFetch(api()+"/admin/payments/cron/run",{method:"POST",headers:headers()});
+      $("#cronResult").style.display="block";$("#cronResult").textContent=JSON.stringify(d,null,2);
+      toast(d.success?"Cron ejecutado ✅":"Fallo al ejecutar","t-"+(d.success?"ok":"err"));btn.disabled=false;
     };
 
-    function apiBase(){ return (localStorage.getItem(LS_API) || apiBaseInput.value || DEF_API).replace(/\/$/,""); }
-    function adminHeaders(){
-      const key = localStorage.getItem(LS_KEY) || adminKeyInput.value.trim();
-      return { "Content-Type":"application/json", "x-admin-key": key };
-    }
-
-    // ======= Cron =======
-    $("#runCron").onclick = async () => {
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/cron/run", {
-          method:"POST",
-          headers: adminHeaders(),
-        });
-        const data = await res.json();
-        $("#cronResult").style.display = "block";
-        $("#cronResult").textContent = JSON.stringify(data, null, 2);
-        if (data.success) toast("Cron ejecutado ✅", "t-ok"); else toast("Cron con errores", "t-err");
-      } catch (e){
-        toast("Error al ejecutar cron", "t-err");
-        console.error(e);
-      }
+    $("#auditBtn").onclick=async()=>{
+      const tx=$("#txHash").value.trim();if(!tx)return toast("Ingresa un txHash","t-err");
+      const d=await safeFetch(api()+"/admin/payments/audit/"+tx,{headers:headers()});
+      $("#auditBox").style.display="block";$("#auditBox").textContent=JSON.stringify(d,null,2);
+      toast(d.success?"Auditoría OK":"No verificada",d.success?"t-ok":"t-err");
     };
 
-    // ======= Auditoría tx =======
-    $("#auditBtn").onclick = async () => {
-      const tx = $("#txHash").value.trim();
-      if (!tx) return toast("Ingresa un txHash", "t-err");
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/audit/" + tx, {
-          headers: adminHeaders(),
-        });
-        const data = await res.json();
-        $("#auditBox").style.display = "block";
-        $("#auditBox").textContent = JSON.stringify(data, null, 2);
-        if (data.success) toast("Auditoría OK", "t-ok"); else toast("No verificada", "t-err");
-      } catch (e){
-        toast("Error auditando", "t-err");
-      }
-    };
-
-    // ======= Listado órdenes =======
-    const tbody = $("#ordersBody");
-    $("#refreshBtn").onclick = loadOrders;
-
+    $("#refreshBtn").onclick=loadOrders;
     async function loadOrders(){
-      tbody.innerHTML = <tr><td colspan="8" class="muted">Cargando…</td></tr>;
-      const qs = new URLSearchParams();
-      const st = $("#fStatus").value.trim();
-      const ty = $("#fType").value.trim();
-      const cu = $("#fCurrency").value.trim();
-      const lim = $("#fLimit").value || "25";
-      if (st) qs.set("status", st);
-      if (ty) qs.set("type", ty);
-      if (cu) qs.set("currency", cu);
-      qs.set("limit", lim);
-
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/orders?" + qs.toString(), {
-          headers: adminHeaders(),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || "Error");
-
-        if ((data.data || []).length === 0){
-          tbody.innerHTML = <tr><td colspan="8" class="muted">Sin resultados.</td></tr>;
-          return;
-        }
-
-        tbody.innerHTML = "";
-        (data.data || []).forEach(row => {
-          const tr = document.createElement("tr");
-
-          const statusBadge = (()=> {
-            const s = (row.status||"").toUpperCase();
-            const map = {PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
-            return <span class="badge ${map[s]||"b-pending"}">${s}</span>;
-          })();
-
-          const txHtml = row.txHash
-            ? <a href="https://bscscan.com/tx/${row.txHash}" target="_blank" class="kbd">${row.txHash.slice(0,10)}…</a>
-            : <span class="muted">—</span>;
-
-          tr.innerHTML = `
-            <td>${fmt(row.createdAt)}</td>
-            <td>${row.modelId?.name || "—"}</td>
-            <td><b>${row.amount}</b></td>
-            <td>${row.currency}</td>
-            <td>${row.type}</td>
-            <td>${statusBadge}</td>
-            <td>${txHtml}</td>
-            <td class="right">
-              <button class="secondary" data-action="audit" data-hash="${row.txHash||""}" ${row.txHash?"":"disabled"}>Auditar</button>
-              <select data-status="${row._id}">
-                <option ${row.status==="PENDING"?"selected":""}>PENDING</option>
-                <option ${row.status==="PROCESSING"?"selected":""}>PROCESSING</option>
-                <option ${row.status==="CONFIRMED"?"selected":""}>CONFIRMED</option>
-                <option ${row.status==="FAILED"?"selected":""}>FAILED</option>
-                <option ${row.status==="CANCELLED"?"selected":""}>CANCELLED</option>
-              </select>
-              <button data-action="save" data-id="${row._id}">Guardar</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        // Delegación de eventos
-        tbody.onclick = async (e) => {
-          const b = e.target.closest("button");
-          if (!b) return;
-          const action = b.getAttribute("data-action");
-
-          if (action === "audit") {
-            const hash = b.getAttribute("data-hash");
-            if (!hash) return;
-            $("#txHash").value = hash;
-            $("#auditBtn").click();
-          }
-
-          if (action === "save") {
-            const id = b.getAttribute("data-id");
-            const sel = tbody.querySelector(select[data-status="${id}"]);
-            const status = sel?.value;
-            if (!status) return;
-            await updateStatus(id, status);
-          }
-        };
-
-      } catch (err){
-        console.error(err);
-        tbody.innerHTML = <tr><td colspan="8" class="muted">Error cargando órdenes.</td></tr>;
-        toast("Error cargando órdenes", "t-err");
-      }
+      const body=$("#ordersBody");body.innerHTML="<tr><td colspan='8' class='muted'>Cargando...</td></tr>";
+      const qs=new URLSearchParams();["Status","Type","Currency","Limit"].forEach(k=>{const v=$("#f"+k).value;if(v)qs.set(k.toLowerCase(),v)});
+      const d=await safeFetch(api()+"/admin/payments/orders?"+qs,{headers:headers()});
+      if(!d.success){toast("Error cargando","t-err");return body.innerHTML="<tr><td colspan='8' class='muted'>Error al cargar.</td></tr>";}
+      if(!d.data?.length)return body.innerHTML="<tr><td colspan='8' class='muted'>Sin resultados.</td></tr>";
+      body.innerHTML="";
+      d.data.forEach(o=>{
+        const s=o.status||"PENDING";
+        const map={PENDING:"b-pending",PROCESSING:"b-warn",CONFIRMED:"b-ok",FAILED:"b-err",CANCELLED:"b-err"};
+        const tx=o.txHash?`<a href="https://bscscan.com/tx/${o.txHash}" target="_blank" class="kbd" title="${o.txHash}">${o.txHash.slice(0,10)}…</a>`:"—";
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td>${new Date(o.createdAt).toLocaleString()}</td>
+        <td>${o.modelId?.name||"—"}</td><td><b>${o.amount}</b></td><td>${o.currency}</td>
+        <td>${o.type}</td><td><span class="badge ${map[s]||"b-pending"}">${s}</span></td><td>${tx}</td>
+        <td><select id="sel-${o._id}">${["PENDING","PROCESSING","CONFIRMED","FAILED","CANCELLED"].map(st=>`<option ${st===s?"selected":""}>${st}</option>`).join("")}</select>
+        <button data-id="${o._id}">💾</button></td>`;
+        body.appendChild(tr);
+      });
+      body.onclick=async e=>{
+        const b=e.target.closest("button");if(!b)return;
+        const id=b.dataset.id;const status=$("#sel-"+id).value;
+        const r=await safeFetch(api()+"/admin/payments/orders/"+id+"/status",{method:"PATCH",headers:headers(),body:JSON.stringify({status})});
+        toast(r.success?"Actualizado":"Error","t-"+(r.success?"ok":"err"));
+        if(r.success)loadOrders();
+      };
     }
 
-    async function updateStatus(id, status){
-      try {
-        const res = await fetch(apiBase() + "/admin/payments/orders/" + id + "/status", {
-          method: "PATCH",
-          headers: adminHeaders(),
-          body: JSON.stringify({ status })
-        });
-        const data = await res.json();
-        if (data.success){
-          toast("Estado actualizado ✅", "t-ok");
-          loadOrders();
-        } else {
-          toast("No se pudo actualizar", "t-err");
-        }
-      } catch(e){
-        toast("Error actualizando", "t-err");
-      }
-    }
-
-    // Auto-init
-    window.addEventListener("load", () => {
-      if (!adminKeyInput.value) {
-        adminKeyInput.value = localStorage.getItem(LS_KEY) || "SuperClaveUltraSegura_2025";
-      }
-      loadOrders();
-      // Mostrar la expresión del cron si el backend la expone en /api/health (opcional)
-      fetch(apiBase()+"/health").then(r=>r.json()).then(h=>{
-        if (h && h.cron && h.cron.schedule) cronSpec.textContent = h.cron.schedule;
-      }).catch(()=>{});
-    });
+    window.addEventListener("load",loadOrders);
   </script>
 </body>
 </html>
+
 
