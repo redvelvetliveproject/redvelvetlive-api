@@ -1,56 +1,68 @@
 // ============================================
-// 👩‍💻 RedVelvetLive — Rutas Administrativas de Modelos (PRO FINAL)
+// 👩‍💻 RedVelvetLive — Rutas Administrativas de Modelos (PRO FINAL + KPIs)
 // ============================================
 //
 // Controla desde el panel:
-//   ✅ Listar modelos activos/inactivos
+//   ✅ Listar modelos con KPIs en tiempo real
 //   ✅ Cambiar estado (activar/desactivar/banear)
 //   ✅ Destacar o marcar como embajadora
-//   ✅ Auditoría opcional en consola (logs)
+//   ✅ Eliminar modelo (seguro)
+//   ✅ Logs detallados para auditoría
 //
 // Protegido con middleware adminAuth.js
 // ============================================
 
 import express from "express";
-import ModelUser from "../models/ModelUser.js"; // Mongoose model de los modelos
+import ModelUser from "../models/ModelUser.js";
 import { validateObjectId } from "../services/validators.js";
 
 const router = express.Router();
 
 /* ==========================================================
-   ✅ 1️⃣ Listar modelos activos/inactivos (GET /api/admin/models)
+   ✅ 1️⃣ Listar modelos + KPIs (GET /api/admin/models)
    ========================================================== */
 router.get("/", async (req, res) => {
   try {
-    const { status, limit = 50, skip = 0, search = "" } = req.query;
+    const { status, limit = 50, skip = 0, q = "" } = req.query;
     const query = {};
 
-    // 🔎 Filtros avanzados
+    // 🔎 Filtros dinámicos
     if (status) query.status = status.toUpperCase();
-    if (search)
+    if (q) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { country: { $regex: search, $options: "i" } },
-        { wallet: { $regex: search, $options: "i" } },
+        { name: { $regex: q, $options: "i" } },
+        { country: { $regex: q, $options: "i" } },
+        { wallet: { $regex: q, $options: "i" } },
       ];
+    }
 
-    const [models, total] = await Promise.all([
-      ModelUser.find(query)
-        .sort({ createdAt: -1 })
-        .skip(Number(skip))
-        .limit(Number(limit))
-        .select(
-          "name country wallet status featured ambassador createdAt updatedAt"
-        )
-        .lean(),
-      ModelUser.countDocuments(query),
-    ]);
+    // 📊 KPIs globales
+    const [models, total, active, inactive, featured, ambassador] =
+      await Promise.all([
+        ModelUser.find(query)
+          .sort({ createdAt: -1 })
+          .skip(Number(skip))
+          .limit(Number(limit))
+          .select("name country wallet status featured ambassador createdAt updatedAt")
+          .lean(),
+        ModelUser.countDocuments(query),
+        ModelUser.countDocuments({ status: "ACTIVE" }),
+        ModelUser.countDocuments({ status: "INACTIVE" }),
+        ModelUser.countDocuments({ featured: true }),
+        ModelUser.countDocuments({ ambassador: true }),
+      ]);
 
     res.status(200).json({
       success: true,
       total,
       count: models.length,
       data: models,
+      kpis: {
+        active,
+        inactive,
+        featured,
+        ambassador,
+      },
       timestamp: new Date(),
     });
   } catch (error) {
@@ -86,24 +98,23 @@ router.patch("/:id/status", async (req, res) => {
       });
     }
 
-    // 🟢 Estados posibles: ACTIVE, INACTIVE, BANNED
     const newStatus = (status || "INACTIVE").toUpperCase();
     model.status = newStatus;
     model.updatedAt = new Date();
     await model.save();
 
-    console.log(`🧩 Estado modelo actualizado: ${model.name} → ${newStatus}`);
+    console.log(`🧩 Estado actualizado: ${model.name} → ${newStatus}`);
 
     res.status(200).json({
       success: true,
-      message: `Estado del modelo actualizado a ${newStatus}.`,
+      message: `Estado actualizado a ${newStatus}`,
       model,
     });
   } catch (error) {
     console.error("❌ Error actualizando estado del modelo:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno al actualizar el estado.",
+      message: "Error interno al actualizar estado del modelo.",
       error: error.message,
     });
   }
@@ -138,7 +149,7 @@ router.patch("/:id/feature", async (req, res) => {
     await model.save();
 
     console.log(
-      `⭐ Modelo actualizado: ${model.name} → Featured: ${model.featured}, Ambassador: ${model.ambassador}`
+      `⭐ Modelo actualizado: ${model.name} → featured=${model.featured}, ambassador=${model.ambassador}`
     );
 
     res.status(200).json({
@@ -150,7 +161,7 @@ router.patch("/:id/feature", async (req, res) => {
     console.error("❌ Error destacando modelo:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno destacando modelo.",
+      message: "Error interno al actualizar modelo.",
       error: error.message,
     });
   }
@@ -162,18 +173,20 @@ router.patch("/:id/feature", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    if (!validateObjectId(id))
+    if (!validateObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "ID de modelo inválido.",
       });
+    }
 
     const model = await ModelUser.findByIdAndDelete(id);
-    if (!model)
+    if (!model) {
       return res.status(404).json({
         success: false,
         message: "Modelo no encontrado o ya eliminado.",
       });
+    }
 
     console.log(`🗑️ Modelo eliminado: ${model.name} (${model.wallet})`);
 
@@ -186,7 +199,7 @@ router.delete("/:id", async (req, res) => {
     console.error("❌ Error eliminando modelo:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno eliminando el modelo.",
+      message: "Error interno al eliminar modelo.",
       error: error.message,
     });
   }
