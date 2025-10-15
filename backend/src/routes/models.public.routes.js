@@ -1,13 +1,14 @@
 // ============================================
-// 🌹 RedVelvetLive — Rutas Públicas de Modelos (PRO EXTENDIDA)
+// 🌹 RedVelvetLive — Rutas Públicas de Modelos (PRO FINAL)
 // ============================================
 //
-// API avanzada para mostrar información segura de modelos:
-//   ✅ Listado general con búsqueda y filtros
-//   ✅ Perfil público individual
-//   ✅ Ranking dinámico (Top / Destacadas / Embajadoras / En vivo)
-//
-// Totalmente optimizada para SEO y carga en el frontend.
+// Permite al frontend mostrar listados públicos sin exponer datos internos.
+// Incluye:
+//   ✅ /api/models                → Listado general con filtros
+//   ✅ /api/models/top            → Ranking global (por seguidores o ingresos)
+//   ✅ /api/models/featured       → Modelos destacadas
+//   ✅ /api/models/live           → Modelos transmitiendo
+//   ✅ /api/models/ambassadors    → Embajadoras activas
 // ============================================
 
 import express from "express";
@@ -16,243 +17,161 @@ import ModelUser from "../models/ModelUser.js";
 const router = express.Router();
 
 /* ==========================================================
-   ✅ 1️⃣ Listado general con búsqueda y filtros
+   ✅ 1️⃣ Listado general /api/models
    ========================================================== */
 router.get("/", async (req, res) => {
   try {
-    const {
-      limit = 30,
-      skip = 0,
-      country,
-      featured,
-      ambassador,
-      q,
-      sort = "recent",
-    } = req.query;
+    const { status = "ACTIVE", search = "", limit = 50, skip = 0 } = req.query;
 
-    const query = { status: "ACTIVE" };
-
-    // 🔎 Filtros
-    if (country) query.country = new RegExp(country, "i");
-    if (featured) query.featured = featured === "true";
-    if (ambassador) query.ambassador = ambassador === "true";
-    if (q) {
+    const query = { status: status.toUpperCase() };
+    if (search) {
       query.$or = [
-        { name: { $regex: q, $options: "i" } },
-        { country: { $regex: q, $options: "i" } },
+        { name: { $regex: search, $options: "i" } },
+        { country: { $regex: search, $options: "i" } },
       ];
     }
 
-    // 📊 Ordenamiento
-    let sortOption = { createdAt: -1 };
-    if (sort === "popular") sortOption = { followers: -1 };
-    if (sort === "earnings") sortOption = { totalEarnings: -1 };
-    if (sort === "featured") sortOption = { featured: -1 };
-    if (sort === "ambassador") sortOption = { ambassador: -1 };
-
     const [models, total] = await Promise.all([
       ModelUser.find(query)
-        .sort(sortOption)
+        .sort({ createdAt: -1 })
         .skip(Number(skip))
         .limit(Number(limit))
         .select(
-          "name country wallet status featured ambassador avatarUrl bannerUrl totalEarnings followers liveStatus createdAt"
+          "name country avatarUrl bannerUrl liveStatus followers featured ambassador"
         )
         .lean(),
       ModelUser.countDocuments(query),
     ]);
 
-    const safeModels = models.map((m) => ({
-      id: m._id,
-      name: m.name,
-      country: m.country,
-      wallet: m.wallet,
-      status: m.status,
-      featured: m.featured,
-      ambassador: m.ambassador,
-      avatarUrl: m.avatarUrl,
-      bannerUrl: m.bannerUrl,
-      totalEarnings: m.totalEarnings,
-      followers: m.followers,
-      liveStatus: m.liveStatus,
-      createdAt: m.createdAt,
-    }));
-
-    res.status(200).json({
+    res.json({
       success: true,
       total,
-      count: safeModels.length,
-      data: safeModels,
-      timestamp: new Date(),
+      count: models.length,
+      data: models,
     });
   } catch (error) {
-    console.error("❌ Error listando modelos:", error);
+    console.error("❌ Error listando modelos públicos:", error);
     res.status(500).json({
       success: false,
       message: "Error interno al listar modelos.",
-      error: error.message,
     });
   }
 });
 
 /* ==========================================================
-   ✅ 2️⃣ Perfil público de modelo (por ID o wallet)
+   ✅ 2️⃣ Top Modelos /api/models/top
    ========================================================== */
-router.get("/:id", async (req, res) => {
+router.get("/top", async (req, res) => {
   try {
-    const { id } = req.params;
-    const model =
-      (await ModelUser.findOne({
-        $or: [{ _id: id }, { wallet: id.toLowerCase() }],
-        status: "ACTIVE",
-      })
-        .select(
-          "name country bio wallet featured ambassador avatarUrl bannerUrl totalEarnings followers liveStatus createdAt"
-        )
-        .lean()) || null;
+    const { limit = 20 } = req.query;
+    const models = await ModelUser.find({ status: "ACTIVE" })
+      .sort({ followers: -1, totalEarnings: -1 })
+      .limit(Number(limit))
+      .select(
+        "name country avatarUrl bannerUrl followers totalEarnings featured ambassador"
+      )
+      .lean();
 
-    if (!model) {
-      return res.status(404).json({
-        success: false,
-        message: "Modelo no encontrada o inactiva.",
-      });
-    }
-
-    res.status(200).json({
+    res.json({
       success: true,
-      data: model,
-      timestamp: new Date(),
+      category: "top",
+      count: models.length,
+      data: models,
     });
   } catch (error) {
-    console.error("❌ Error obteniendo perfil:", error);
+    console.error("❌ Error en /api/models/top:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno al obtener perfil.",
-      error: error.message,
+      message: "Error obteniendo ranking top.",
     });
   }
 });
 
 /* ==========================================================
-   🌟 3️⃣ Modelos destacadas (GET /api/models/featured)
+   ✅ 3️⃣ Destacadas /api/models/featured
    ========================================================== */
-router.get("/featured/list", async (req, res) => {
+router.get("/featured", async (req, res) => {
   try {
-    const models = await ModelUser.find({ featured: true, status: "ACTIVE" })
+    const { limit = 20 } = req.query;
+    const models = await ModelUser.find({ status: "ACTIVE", featured: true })
       .sort({ updatedAt: -1 })
-      .limit(20)
+      .limit(Number(limit))
       .select(
-        "name country wallet featured ambassador avatarUrl bannerUrl followers totalEarnings liveStatus"
+        "name country avatarUrl bannerUrl featured ambassador followers"
       )
       .lean();
 
-    res.status(200).json({
+    res.json({
       success: true,
+      category: "featured",
       count: models.length,
       data: models,
     });
   } catch (error) {
-    console.error("❌ Error obteniendo destacadas:", error);
+    console.error("❌ Error en /api/models/featured:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno al obtener destacadas.",
-      error: error.message,
+      message: "Error obteniendo modelos destacadas.",
     });
   }
 });
 
 /* ==========================================================
-   💎 4️⃣ Embajadoras del mes (GET /api/models/ambassadors)
+   ✅ 4️⃣ En Vivo /api/models/live
    ========================================================== */
-router.get("/ambassadors/list", async (req, res) => {
-  try {
-    const models = await ModelUser.find({ ambassador: true, status: "ACTIVE" })
-      .sort({ totalEarnings: -1 })
-      .limit(20)
-      .select(
-        "name country wallet ambassador avatarUrl bannerUrl followers totalEarnings liveStatus"
-      )
-      .lean();
-
-    res.status(200).json({
-      success: true,
-      count: models.length,
-      data: models,
-    });
-  } catch (error) {
-    console.error("❌ Error obteniendo embajadoras:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error interno al obtener embajadoras.",
-      error: error.message,
-    });
-  }
-});
-
-/* ==========================================================
-   🔥 5️⃣ Modelos en vivo (GET /api/models/live)
-   ========================================================== */
-router.get("/live/list", async (req, res) => {
+router.get("/live", async (req, res) => {
   try {
     const models = await ModelUser.find({
       status: "ACTIVE",
       liveStatus: { $in: ["ONLINE", "VOICE_ONLY"] },
     })
-      .sort({ liveStatus: -1, followers: -1 })
+      .sort({ updatedAt: -1 })
       .select(
-        "name country wallet avatarUrl bannerUrl liveStatus followers featured ambassador"
+        "name country avatarUrl bannerUrl liveStatus followers featured ambassador"
       )
-      .limit(25)
       .lean();
 
-    res.status(200).json({
+    res.json({
       success: true,
+      category: "live",
       count: models.length,
       data: models,
     });
   } catch (error) {
-    console.error("❌ Error obteniendo modelos en vivo:", error);
+    console.error("❌ Error en /api/models/live:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno al obtener modelos en vivo.",
-      error: error.message,
+      message: "Error obteniendo modelos en vivo.",
     });
   }
 });
 
 /* ==========================================================
-   🏆 6️⃣ Ranking general (GET /api/models/top)
+   ✅ 5️⃣ Embajadoras /api/models/ambassadors
    ========================================================== */
-router.get("/top/list", async (req, res) => {
+router.get("/ambassadors", async (req, res) => {
   try {
-    const { metric = "followers", limit = 15 } = req.query;
-
-    const validMetrics = ["followers", "totalEarnings", "createdAt"];
-    const sortField = validMetrics.includes(metric) ? metric : "followers";
-
-    const models = await ModelUser.find({ status: "ACTIVE" })
-      .sort({ [sortField]: -1 })
-      .limit(Number(limit))
-      .select(
-        "name country wallet featured ambassador avatarUrl totalEarnings followers liveStatus"
-      )
+    const models = await ModelUser.find({
+      status: "ACTIVE",
+      ambassador: true,
+    })
+      .sort({ followers: -1 })
+      .select("name country avatarUrl bannerUrl ambassador featured followers")
       .lean();
 
-    res.status(200).json({
+    res.json({
       success: true,
-      metric,
+      category: "ambassadors",
       count: models.length,
       data: models,
     });
   } catch (error) {
-    console.error("❌ Error obteniendo ranking:", error);
+    console.error("❌ Error en /api/models/ambassadors:", error);
     res.status(500).json({
       success: false,
-      message: "Error interno al obtener ranking.",
-      error: error.message,
+      message: "Error obteniendo embajadoras.",
     });
   }
 });
 
 export default router;
-
