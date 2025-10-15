@@ -1,13 +1,12 @@
 // ============================================
-// 🌹 RedVelvetLive — Rutas Públicas de Modelos (PRO EXTENDIDA)
+// 🌹 RedVelvetLive — Rutas Públicas de Modelos (PRO EXTENDIDA FINAL)
 // ============================================
 //
 // API avanzada para mostrar información segura de modelos:
-//   ✅ Listado general con búsqueda y filtros
-//   ✅ Perfil público individual
+//   ✅ Listado general con búsqueda, filtros y paginación
+//   ✅ Perfil público individual (por ID o wallet)
 //   ✅ Ranking dinámico (Top / Destacadas / Embajadoras / En vivo)
-//
-// Totalmente optimizada para SEO y carga en el frontend.
+//   ✅ Optimizada para SEO, SSR y carga rápida del frontend
 // ============================================
 
 import express from "express";
@@ -20,7 +19,7 @@ const router = express.Router();
    ========================================================== */
 router.get("/", async (req, res) => {
   try {
-    const {
+    let {
       limit = 30,
       skip = 0,
       country,
@@ -30,9 +29,13 @@ router.get("/", async (req, res) => {
       sort = "recent",
     } = req.query;
 
+    // 🔐 Validaciones básicas
+    limit = Math.min(Number(limit), 100);
+    skip = Math.max(Number(skip), 0);
+
     const query = { status: "ACTIVE" };
 
-    // 🔎 Filtros
+    // 🔎 Filtros dinámicos
     if (country) query.country = new RegExp(country, "i");
     if (featured) query.featured = featured === "true";
     if (ambassador) query.ambassador = ambassador === "true";
@@ -43,18 +46,22 @@ router.get("/", async (req, res) => {
       ];
     }
 
-    // 📊 Ordenamiento
-    let sortOption = { createdAt: -1 };
-    if (sort === "popular") sortOption = { followers: -1 };
-    if (sort === "earnings") sortOption = { totalEarnings: -1 };
-    if (sort === "featured") sortOption = { featured: -1 };
-    if (sort === "ambassador") sortOption = { ambassador: -1 };
+    // 📊 Ordenamiento flexible
+    const sortOptions = {
+      recent: { createdAt: -1 },
+      popular: { followers: -1 },
+      earnings: { totalEarnings: -1 },
+      featured: { featured: -1 },
+      ambassador: { ambassador: -1 },
+    };
+    const sortOption = sortOptions[sort] || { createdAt: -1 };
 
+    // 🧩 Consulta principal
     const [models, total] = await Promise.all([
       ModelUser.find(query)
         .sort(sortOption)
-        .skip(Number(skip))
-        .limit(Number(limit))
+        .skip(skip)
+        .limit(limit)
         .select(
           "name country wallet status featured ambassador avatarUrl bannerUrl totalEarnings followers liveStatus createdAt"
         )
@@ -62,27 +69,25 @@ router.get("/", async (req, res) => {
       ModelUser.countDocuments(query),
     ]);
 
-    const safeModels = models.map((m) => ({
-      id: m._id,
-      name: m.name,
-      country: m.country,
-      wallet: m.wallet,
-      status: m.status,
-      featured: m.featured,
-      ambassador: m.ambassador,
-      avatarUrl: m.avatarUrl,
-      bannerUrl: m.bannerUrl,
-      totalEarnings: m.totalEarnings,
-      followers: m.followers,
-      liveStatus: m.liveStatus,
-      createdAt: m.createdAt,
-    }));
-
     res.status(200).json({
       success: true,
       total,
-      count: safeModels.length,
-      data: safeModels,
+      count: models.length,
+      data: models.map((m) => ({
+        id: m._id,
+        name: m.name,
+        country: m.country,
+        wallet: m.wallet,
+        status: m.status,
+        featured: m.featured,
+        ambassador: m.ambassador,
+        avatarUrl: m.avatarUrl,
+        bannerUrl: m.bannerUrl,
+        totalEarnings: m.totalEarnings,
+        followers: m.followers,
+        liveStatus: m.liveStatus,
+        createdAt: m.createdAt,
+      })),
       timestamp: new Date(),
     });
   } catch (error) {
@@ -98,18 +103,18 @@ router.get("/", async (req, res) => {
 /* ==========================================================
    ✅ 2️⃣ Perfil público de modelo (por ID o wallet)
    ========================================================== */
-router.get("/:id", async (req, res) => {
+router.get("/profile/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const model =
-      (await ModelUser.findOne({
-        $or: [{ _id: id }, { wallet: id.toLowerCase() }],
-        status: "ACTIVE",
-      })
-        .select(
-          "name country bio wallet featured ambassador avatarUrl bannerUrl totalEarnings followers liveStatus createdAt"
-        )
-        .lean()) || null;
+
+    const model = await ModelUser.findOne({
+      $or: [{ _id: id }, { wallet: id.toLowerCase() }],
+      status: "ACTIVE",
+    })
+      .select(
+        "name country bio wallet featured ambassador avatarUrl bannerUrl totalEarnings followers liveStatus createdAt"
+      )
+      .lean();
 
     if (!model) {
       return res.status(404).json({
@@ -134,9 +139,9 @@ router.get("/:id", async (req, res) => {
 });
 
 /* ==========================================================
-   🌟 3️⃣ Modelos destacadas (GET /api/models/featured)
+   🌟 3️⃣ Modelos destacadas (GET /api/models/featured/list)
    ========================================================== */
-router.get("/featured/list", async (req, res) => {
+router.get("/featured/list", async (_, res) => {
   try {
     const models = await ModelUser.find({ featured: true, status: "ACTIVE" })
       .sort({ updatedAt: -1 })
@@ -150,6 +155,7 @@ router.get("/featured/list", async (req, res) => {
       success: true,
       count: models.length,
       data: models,
+      timestamp: new Date(),
     });
   } catch (error) {
     console.error("❌ Error obteniendo destacadas:", error);
@@ -162,9 +168,9 @@ router.get("/featured/list", async (req, res) => {
 });
 
 /* ==========================================================
-   💎 4️⃣ Embajadoras del mes (GET /api/models/ambassadors)
+   💎 4️⃣ Embajadoras del mes (GET /api/models/ambassadors/list)
    ========================================================== */
-router.get("/ambassadors/list", async (req, res) => {
+router.get("/ambassadors/list", async (_, res) => {
   try {
     const models = await ModelUser.find({ ambassador: true, status: "ACTIVE" })
       .sort({ totalEarnings: -1 })
@@ -178,6 +184,7 @@ router.get("/ambassadors/list", async (req, res) => {
       success: true,
       count: models.length,
       data: models,
+      timestamp: new Date(),
     });
   } catch (error) {
     console.error("❌ Error obteniendo embajadoras:", error);
@@ -190,25 +197,26 @@ router.get("/ambassadors/list", async (req, res) => {
 });
 
 /* ==========================================================
-   🔥 5️⃣ Modelos en vivo (GET /api/models/live)
+   🔥 5️⃣ Modelos en vivo (GET /api/models/live/list)
    ========================================================== */
-router.get("/live/list", async (req, res) => {
+router.get("/live/list", async (_, res) => {
   try {
     const models = await ModelUser.find({
       status: "ACTIVE",
       liveStatus: { $in: ["ONLINE", "VOICE_ONLY"] },
     })
       .sort({ liveStatus: -1, followers: -1 })
+      .limit(25)
       .select(
         "name country wallet avatarUrl bannerUrl liveStatus followers featured ambassador"
       )
-      .limit(25)
       .lean();
 
     res.status(200).json({
       success: true,
       count: models.length,
       data: models,
+      timestamp: new Date(),
     });
   } catch (error) {
     console.error("❌ Error obteniendo modelos en vivo:", error);
@@ -221,12 +229,11 @@ router.get("/live/list", async (req, res) => {
 });
 
 /* ==========================================================
-   🏆 6️⃣ Ranking general (GET /api/models/top)
+   🏆 6️⃣ Ranking general (GET /api/models/top/list)
    ========================================================== */
 router.get("/top/list", async (req, res) => {
   try {
     const { metric = "followers", limit = 15 } = req.query;
-
     const validMetrics = ["followers", "totalEarnings", "createdAt"];
     const sortField = validMetrics.includes(metric) ? metric : "followers";
 
@@ -243,6 +250,7 @@ router.get("/top/list", async (req, res) => {
       metric,
       count: models.length,
       data: models,
+      timestamp: new Date(),
     });
   } catch (error) {
     console.error("❌ Error obteniendo ranking:", error);
