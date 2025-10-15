@@ -1,6 +1,29 @@
 // =============================================
 // 🌹 REDVELVETLIVE — SERVIDOR BACKEND PRO FINAL
 // =============================================
+//
+// 🚀 Incluye:
+//   ✅ MongoDB + Express + CORS + JWT + Helmet + GZIP
+//   ✅ Rutas públicas (Modelos, Pagos, Healthcheck)
+//   ✅ Rutas administrativas (Pagos, Modelos, Login Admin)
+//   ✅ Cron automático de verificación de pagos
+//   ✅ Servidor estático del panel /admin
+//
+// 📁 Estructura esperada:
+//   backend/
+//    ├─ src/
+//    │   ├─ routes/
+//    │   │   ├─ models.public.routes.js
+//    │   │   ├─ payments.routes.js
+//    │   │   ├─ admin.auth.routes.js
+//    │   │   ├─ payments.admin.routes.js
+//    │   │   └─ models.admin.routes.js
+//    │   ├─ middleware/
+//    │   ├─ config/
+//    │   ├─ jobs/
+//    │   ├─ models/
+//    │   └─ services/
+// =============================================
 
 import express from "express";
 import cors from "cors";
@@ -14,7 +37,7 @@ import { fileURLToPath } from "url";
 
 import connectDB from "./config/db.js";
 
-// 🧩 Rutas principales
+// 🧩 Rutas principales (públicas)
 import modelsPublicRoutes from "./routes/models.public.routes.js";
 import paymentsRoutes from "./routes/payments.routes.js";
 
@@ -46,9 +69,9 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // 🔑 necesario para JWT por cookie
-app.use(helmet({ crossOriginResourcePolicy: false })); // protección HTTP
+app.use(helmet({ crossOriginResourcePolicy: false })); // Protección HTTP
 app.use(compression()); // ⚙️ GZIP para optimizar tráfico
-app.use(morgan("dev")); // 🧾 logs HTTP legibles
+app.use(morgan("dev")); // 🧾 Logs legibles
 
 // =========================
 // 🗄️ Conexión a MongoDB
@@ -76,7 +99,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// 👩‍💻 Modelos públicos (listado, perfil, streaming)
+// 👩‍💻 Modelos públicos (listado, perfil, ranking, embajadoras, en vivo)
 app.use("/api/models", modelsPublicRoutes);
 
 // 💰 Pagos generales (tips, retiros, etc.)
@@ -86,19 +109,23 @@ app.use("/api/payments", paymentsRoutes);
 // 🔐 Administración protegida con JWT
 // =========================
 
-// 🧩 Login administrativo (devuelve token)
+// 🔑 Login administrativo (devuelve token JWT)
 app.use("/api/admin", adminAuthRoutes);
 
 // 💳 Administración de pagos
 app.use("/api/admin/payments", adminAuth, paymentsAdminRoutes);
 
-// 👩‍💼 Administración de modelos activos / embajadoras
+// 👩‍💼 Administración de modelos (activos, embajadoras, destacadas)
 app.use("/api/admin/models", adminAuth, modelsAdminRoutes);
 
 // =========================
 // 🖥️ Servir Panel Admin desde el backend
 // =========================
-// Permite acceder al panel visual en: http://localhost:4000/admin
+//
+// Permite acceder al panel visual directamente desde:
+// 👉 http://localhost:4000/admin
+// 👉 https://api.redvelvetlive.com/admin
+//
 const adminPath = path.join(__dirname, "../admin");
 app.use("/admin", express.static(adminPath));
 console.log(`🧩 Panel Admin servido desde: ${adminPath}`);
