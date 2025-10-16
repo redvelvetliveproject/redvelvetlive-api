@@ -1,19 +1,28 @@
-// backend/src/jobs/payments.cron.js
+// ============================================
+// 💰 RedVelvetLive — Cron de Verificación de Pagos (PRO FINAL)
+// ============================================
+//
+// Revisa periódicamente las órdenes PENDING/PROCESSING para:
+//   ✅ Verificar en blockchain si están confirmadas o fallidas
+//   ✅ Actualizar su estado y registro en MongoDB
+//   ✅ Evitar sobrecarga con Jitter aleatorio y batch limitado
+//
+// Variables de entorno:
+//   - CRON_ENABLED=true|false
+//   - CRON_SCHEDULE="*/5 * * * *"   → cada 5 minutos (por defecto)
+//   - CRON_BATCH_SIZE=50
+//   - CRON_JITTER_MS=30000          → hasta 30s aleatorios
+// ============================================
+
 import cron from "node-cron";
 import PaymentOrder from "../models/PaymentOrder.js";
 import { verifyTransaction } from "../services/web3.utils.js";
 
-/**
- * 🧠 Estrategia:
- * - Busca órdenes PENDING/PROCESSING
- * - Si tienen txHash: verifica on-chain
- * - Si confirmado: marca CONFIRMED y agrega explorer
- * - Si finalizado y falló: marca FAILED
- * - Si aún no final, lo deja en PROCESSING
- */
-
 const BATCH_SIZE = Number(process.env.CRON_BATCH_SIZE || 50);
 
+/* ======================================================
+   🔁 Procesa órdenes pendientes o en proceso
+   ====================================================== */
 async function processPendingOrders() {
   const query = { status: { $in: ["PENDING", "PROCESSING"] } };
 
@@ -26,16 +35,12 @@ async function processPendingOrders() {
 
   let updated = 0;
 
-  // Procesa de forma secuencial para no estresar el RPC
   for (const o of orders) {
     try {
-      // Si no hay txHash aún (ej: flujo custodio o pendiente de UI), lo saltamos
-      if (!o.txHash) continue;
+      if (!o.txHash) continue; // no hay transacción aún
 
       const result = await verifyTransaction(o.txHash, o.currency);
 
-      // verifyTransaction retorna algo tipo:
-      // { success: boolean, finalized: boolean, reason?: string, confirmations?: number }
       const update = {
         updatedAt: new Date(),
         "metadata.txExplorer": `https://bscscan.com/tx/${o.txHash}`,
@@ -44,18 +49,15 @@ async function processPendingOrders() {
       if (result.success) {
         update.status = "CONFIRMED";
       } else if (result.finalized) {
-        // Finalizado en cadena pero no exitoso (revert/failed)
         update.status = "FAILED";
         update["metadata.reason"] = result.reason || "on-chain revert/failed";
       } else {
-        // Aún sin finalizar: lo dejamos en PROCESSING
         update.status = "PROCESSING";
       }
 
       await PaymentOrder.updateOne({ _id: o._id }, { $set: update });
       updated++;
     } catch (err) {
-      // No frenamos todo el lote por un error puntual
       await PaymentOrder.updateOne(
         { _id: o._id },
         {
@@ -72,26 +74,24 @@ async function processPendingOrders() {
   return { scanned: orders.length, updated };
 }
 
-/**
- * Inicia el cron si está habilitado.
- * Variables:
- *  - CRON_ENABLED=true|false
- *  - CRON_SCHEDULE (expresión cron) → por defecto: */5 * * * *
- *  - CRON_BATCH_SIZE (por defecto 50)
- *  - CRON_JITTER_MS (por defecto 30000) para evitar thundering herd
- */
+/* ======================================================
+   ⏱️ Inicializa el cron programado
+   ====================================================== */
 export function startPaymentsCron() {
   if (String(process.env.CRON_ENABLED).toLowerCase() !== "true") {
     console.log("⏹️  Payments Cron deshabilitado (CRON_ENABLED != true).");
     return;
   }
 
-  const schedule = process.env.CRON_SCHEDULE || "*/5 * * * *"; // cada 5 minutos
-  const jitter = Number(process.env.CRON_JITTER_MS || 30000); // hasta 30s aleatorios
+  // ⚙️ Cron: cada 5 minutos por defecto
+  const schedule = process.env.CRON_SCHEDULE || "*/5 * * * *";
+  const jitter = Number(process.env.CRON_JITTER_MS || 30000);
 
-  console.log(`⏱️  Iniciando Payments Cron con schedule: "${schedule}" (jitter ≤ ${jitter}ms)`);
+  console.log(
+    `⏱️  Iniciando Payments Cron con schedule "${schedule}" (jitter ≤ ${jitter}ms)`
+  );
 
-  // Jitter inicial para no pegar todas las instancias a la vez
+  // Evita ejecuciones simultáneas
   const startWithJitter = () => {
     setTimeout(() => {
       cron.schedule(schedule, async () => {
@@ -100,7 +100,9 @@ export function startPaymentsCron() {
           const { scanned, updated } = await processPendingOrders();
           const ms = Date.now() - start;
           if (scanned || updated) {
-            console.log(`🧾 Cron pagos: escaneadas ${scanned}, actualizadas ${updated} (${ms}ms)`);
+            console.log(
+              `🧾 Cron pagos: escaneadas ${scanned}, actualizadas ${updated} (${ms}ms)`
+            );
           }
         } catch (e) {
           console.error("❌ Error en Payments Cron:", e);
@@ -112,3 +114,4 @@ export function startPaymentsCron() {
 
   startWithJitter();
 }
+
