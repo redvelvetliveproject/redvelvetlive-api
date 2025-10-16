@@ -1,31 +1,41 @@
-/**
- * 💰 RedVelvetLive — Modelo PaymentOrder (PRO FINAL)
- * --------------------------------------------------
- * Representa todas las transacciones financieras del sistema:
- * tips, retiros, bonificaciones y distribuciones.
- * 100% compatible con BSC, ONECOP y USDT.
- */
+// ============================================
+// 💰 RedVelvetLive — Modelo PaymentOrder (PRO FINAL)
+// ============================================
+//
+// Representa todas las transacciones financieras del sistema:
+//   ✅ Tips (propinas)
+//   ✅ Withdrawals (retiros)
+//   ✅ Distributions (distribuciones automáticas)
+//   ✅ Bonuses (bonificaciones)
+//
+// 100% compatible con BSC, ONECOP y USDT.
+// ============================================
 
 import mongoose from "mongoose";
 
-const paymentOrderSchema = new mongoose.Schema(
+const { Schema, model } = mongoose;
+
+// ==========================================================
+// 🧾 Definición del esquema
+// ==========================================================
+const paymentOrderSchema = new Schema(
   {
-    // 🧩 Modelo o usuario receptor del pago
+    // 👩‍💻 Modelo o usuario receptor del pago
     modelId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Model",
+      ref: "ModelUser", // nombre de tu modelo de modelos
       required: true,
       index: true,
     },
 
-    // 💵 Monto de la operación (en tokens o USDT)
+    // 💵 Monto (en tokens o USDT)
     amount: {
       type: Number,
       required: true,
       min: [0.000001, "El monto debe ser mayor a 0"],
     },
 
-    // 💱 Moneda usada (ONECOP / USDT)
+    // 💱 Moneda
     currency: {
       type: String,
       enum: ["ONECOP", "USDT"],
@@ -33,7 +43,7 @@ const paymentOrderSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🔗 Wallet de destino en la red BSC
+    // 🔗 Wallet destino
     destinationWallet: {
       type: String,
       required: true,
@@ -42,15 +52,15 @@ const paymentOrderSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🧾 Hash de transacción blockchain
+    // 🧾 Hash de transacción
     txHash: {
       type: String,
-      default: "",
       trim: true,
+      default: "",
       index: true,
     },
 
-    // 🧮 Tipo de transacción
+    // 🧮 Tipo de operación
     type: {
       type: String,
       enum: ["TIP", "WITHDRAWAL", "DISTRIBUTION", "BONUS"],
@@ -58,7 +68,7 @@ const paymentOrderSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ⚙️ Estado actual de la transacción
+    // ⚙️ Estado
     status: {
       type: String,
       enum: ["PENDING", "PROCESSING", "CONFIRMED", "FAILED", "CANCELLED"],
@@ -66,23 +76,23 @@ const paymentOrderSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 🧠 Datos extra para trazabilidad
+    // 🧠 Datos adicionales
     metadata: {
       note: { type: String, default: "" },
       adminActionBy: { type: String, default: "" },
       txExplorer: { type: String, default: "" },
-      source: { type: String, default: "frontend" }, // origen (frontend, backend, cron, etc.)
-      device: { type: String, default: "" }, // opcional: registrar tipo de dispositivo
+      source: { type: String, default: "frontend" },
+      device: { type: String, default: "" },
     },
 
-    // 🧾 Enlaces de auditoría (auto-generados)
+    // 🧾 Auditoría
     audit: {
       createdBy: { type: String, default: "system" },
       verifiedBy: { type: String, default: "" },
       verificationDate: { type: Date },
     },
 
-    // 🕒 Control de fechas
+    // 🕒 Fechas
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
@@ -92,31 +102,28 @@ const paymentOrderSchema = new mongoose.Schema(
   }
 );
 
-/* ======================================================
-   🧠 Pre-save hooks: auditoría y trazabilidad automática
-   ====================================================== */
+// ==========================================================
+// 🧩 Hooks de auditoría
+// ==========================================================
 paymentOrderSchema.pre("save", function (next) {
-  // Si existe hash y aún no hay enlace a BscScan
   if (this.txHash && !this.metadata.txExplorer) {
-    this.metadata.txExplorer = `https://bscscan.com/tx/${this.txHash}`;
+    this.metadata.txExplorer = `${process.env.BLOCKCHAIN_EXPLORER || "https://bscscan.com"}/tx/${this.txHash}`;
   }
-
-  // Actualiza fecha de modificación
   this.updatedAt = Date.now();
   next();
 });
 
-/* ======================================================
-   🧩 Índices y optimización de búsqueda
-   ====================================================== */
+// ==========================================================
+// ⚙️ Índices
+// ==========================================================
 paymentOrderSchema.index({ status: 1, createdAt: -1 });
 paymentOrderSchema.index({ currency: 1 });
 paymentOrderSchema.index({ type: 1 });
 paymentOrderSchema.index({ "metadata.txExplorer": 1 });
 
-/* ======================================================
-   📊 Métodos personalizados
-   ====================================================== */
+// ==========================================================
+// 🧠 Métodos personalizados
+// ==========================================================
 paymentOrderSchema.methods.toPublicJSON = function () {
   return {
     id: this._id,
@@ -138,15 +145,17 @@ paymentOrderSchema.methods.isConfirmed = function () {
   return this.status === "CONFIRMED";
 };
 
-paymentOrderSchema.methods.markAsConfirmed = function (txHash) {
+paymentOrderSchema.methods.markAsConfirmed = function (txHash, verifier = "system") {
   this.status = "CONFIRMED";
   this.txHash = txHash;
-  this.metadata.txExplorer = `https://bscscan.com/tx/${txHash}`;
+  this.metadata.txExplorer = `${process.env.BLOCKCHAIN_EXPLORER || "https://bscscan.com"}/tx/${txHash}`;
+  this.audit.verifiedBy = verifier;
   this.audit.verificationDate = new Date();
+  this.updatedAt = new Date();
 };
 
-/* ======================================================
-   ✅ Exportación
-   ====================================================== */
-export default mongoose.model("PaymentOrder", paymentOrderSchema);
-
+// ==========================================================
+// ✅ Exportación
+// ==========================================================
+const PaymentOrder = model("PaymentOrder", paymentOrderSchema);
+export default PaymentOrder;
