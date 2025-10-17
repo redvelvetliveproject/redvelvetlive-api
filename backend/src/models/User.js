@@ -50,7 +50,9 @@ const UserSchema = new Schema(
   {
     // 👤 Identidad
     name: { type: String, trim: true, minlength: 2, maxlength: 120, required: true },
-    slug: { type: String, unique: true, index: true }, // 🌐 Perfil SEO
+
+    // 🌐 Perfil SEO (unique crea su propio índice)
+    slug: { type: String, unique: true },
 
     email: {
       type: String,
@@ -74,13 +76,13 @@ const UserSchema = new Schema(
       match: [/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address'],
     },
 
-    // 🔐 Control
-    role: { type: String, enum: ROLES, default: 'client', index: true },
-    status: { type: String, enum: STATUSES, default: 'active', index: true },
+    // 🔐 Control (sin index en campos; se indexa al final)
+    role: { type: String, enum: ROLES, default: 'client' },
+    status: { type: String, enum: STATUSES, default: 'active' },
 
     // 🌍 Configuración
     locale: { type: String, enum: LOCALES, default: 'es' },
-    country: { type: String, uppercase: true, maxlength: 2, index: true }, // 🌍 ISO-2
+    country: { type: String, uppercase: true, maxlength: 2 }, // ISO-2
     preferences: { type: PreferencesSchema, default: undefined },
 
     // 📜 Perfil público
@@ -96,9 +98,9 @@ const UserSchema = new Schema(
       followers: { type: Number, default: 0 },
       tips: { type: Number, default: 0 },
       totalEarnings: { type: Number, default: 0 },
-      streamingMinutes: { type: Number, default: 0 }, // ⏱️ Tiempo total transmitido
+      streamingMinutes: { type: Number, default: 0 }, // ⏱️
     },
-    popularity: { type: Number, default: 0, index: true }, // Calculado automático
+    popularity: { type: Number, default: 0 }, // Calculado automático
 
     // 🕐 Sesiones
     lastLoginAt: { type: Date },
@@ -107,7 +109,7 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
-// 🔐 Hash automático antes de guardar
+// 🔐 Hash + slug + popularidad
 UserSchema.pre('save', async function (next) {
   // Slug automático SEO-friendly
   if (this.isModified('name') || !this.slug) {
@@ -115,7 +117,9 @@ UserSchema.pre('save', async function (next) {
   }
 
   // Cálculo automático de popularidad
-  this.popularity = (this.stats.followers * 2) + this.stats.tips;
+  const f = this.stats?.followers ?? 0;
+  const t = this.stats?.tips ?? 0;
+  this.popularity = f * 2 + t;
 
   // Hash de contraseña
   if (this.isModified('password') && this.password) {
@@ -153,9 +157,18 @@ UserSchema.methods.toSafeJSON = function () {
   };
 };
 
-// Índices
+// =========================
+// 📚 Índices centralizados
+// =========================
+
+// Búsqueda de perfiles
 UserSchema.index({ name: 'text', slug: 'text' });
+
+// Filtros comunes en listados/analytics
+UserSchema.index({ role: 1, status: 1 });
 UserSchema.index({ country: 1, locale: 1, popularity: -1 });
+
+// Nota: email / wallet / slug ya son `unique` en el campo (no repetir aquí).
 
 const User = mongoose.models.User || model('User', UserSchema);
 export default User;
