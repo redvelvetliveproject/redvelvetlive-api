@@ -1,43 +1,33 @@
 // =============================================
-// 🌹 REDVELVETLIVE — SERVIDOR BACKEND PRO FINAL (v3.0)
+// 🌹 REDVELVETLIVE — SERVIDOR BACKEND PRO FINAL (v3.1)
 // =============================================
 //
-// 🚀 Incluye:
-//   ✅ MongoDB + Express + CORS + JWT + Helmet + GZIP
-//   ✅ Rutas públicas (Modelos, Pagos, Healthcheck)
-//   ✅ Rutas administrativas (Pagos, Modelos, Login Admin)
-//   ✅ Cron automático modularizado (jobs/index.js)
-//   ✅ Servidor estático del panel /admin
-//   ✅ Seguridad endurecida (Helmet, CORS estricto, Cookies seguras)
-//   ✅ Logs optimizados y autocorrección de errores
-//
-// 📁 Estructura esperada:
-//   backend/
-//    ├─ src/
-//    │   ├─ routes/
-//    │   │   ├─ models.public.routes.js
-//    │   │   ├─ payments.routes.js
-//    │   │   ├─ admin.auth.routes.js
-//    │   │   ├─ payments.admin.routes.js
-//    │   │   └─ models.admin.routes.js
-//    │   ├─ middleware/
-//    │   ├─ config/
-//    │   ├─ jobs/
-//    │   │   ├─ payments.cron.js
-//    │   │   └─ index.js
-//    │   ├─ models/
-//    │   └─ services/
+// Cambios PRO:
+//  - Carga forzada de .env desde backend/.env (independiente de PM2/cwd)
+//  - Eliminado el dotenv.config() duplicado
+//  - Resto igual a tu v3.0
 // =============================================
 
+// --- dotenv PRO: fuerza a usar backend/.env ---
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Carga SIEMPRE el .env de /backend (independiente de PM2/cwd)
+dotenv.config({ path: path.join(__dirname, "../.env") });
+
+// =============================================
+// Imports de la app
+// =============================================
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import morgan from "morgan";
 import helmet from "helmet";
 import compression from "compression";
 import cookieParser from "cookie-parser";
-import path from "path";
-import { fileURLToPath } from "url";
 
 import connectDB from "./config/db.js";
 
@@ -54,10 +44,8 @@ import adminAuth from "./middleware/adminAuth.js";
 // 🕒 Carga automática de cron jobs
 import { startAllCrons } from "./jobs/index.js";
 
-// ⚙️ Configuración base
-dotenv.config();
+// ⚙️ App base
 const app = express();
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /* ======================================================
    🧠 MIDDLEWARES GLOBALES
@@ -99,7 +87,7 @@ app.get("/api/health", (req, res) => {
     version: "1.0.0",
     timestamp: new Date(),
     cron: {
-      enabled: process.env.CRON_ENABLED === "true",
+      enabled: String(process.env.CRON_ENABLED).toLowerCase() === "true",
       schedule: process.env.CRON_SCHEDULE || "*/5 * * * *",
     },
   });
@@ -171,3 +159,5 @@ if (String(process.env.CRON_ENABLED).toLowerCase() === "true") {
 }
 
 export default app;
+
+
