@@ -1,4 +1,3 @@
-// ecosystem.config.cjs (repo-safe, CommonJS)
 module.exports = {
   apps: [
     {
@@ -9,6 +8,7 @@ module.exports = {
       exec_mode: "fork",
       watch: false,
       node_args: "--max-old-space-size=512",
+      env_file: "backend/.env",           // ← agrega esto
       env: {
         NODE_ENV: "production",
         PORT: process.env.PORT || 4000
