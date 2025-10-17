@@ -1,29 +1,34 @@
 // =============================================
-// 🌹 REDVELVETLIVE — Conexión MongoDB (PRO FINAL)
+// 💌 REDVELVETLIVE — Configuración SMTP (PRO FINAL)
 // =============================================
-import mongoose from "mongoose";
+import nodemailer from "nodemailer";
 
-const connectDB = async () => {
-  try {
-    const uri = process.env.MONGO_URI;
-    if (!uri) throw new Error("❌ MONGO_URI no definido en .env");
-
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
-      autoIndex: false,
-      maxPoolSize: 10,
-    });
-
-    console.log("✅ Conectado a MongoDB Atlas con éxito");
-  } catch (error) {
-    console.error("❌ Error conectando a MongoDB:", error.message);
-    setTimeout(connectDB, 5000);
+const createTransporter = () => {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    throw new Error("❌ Configuración SMTP incompleta en .env");
   }
-
-  mongoose.connection.on("disconnected", () => {
-    console.warn("⚠️ MongoDB desconectado. Reintentando...");
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT) || 465,
+    secure: true,
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
   });
 };
 
-export default connectDB;
+export const sendEmail = async ({ to, subject, html, text }) => {
+  try {
+    const transporter = createTransporter();
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || `"RedVelvetLive 💎" <${process.env.SMTP_USER}>`,
+      to, subject, text, html,
+    });
+    console.log(`📨 Email enviado a ${to} (${info.messageId})`);
+    return info;
+  } catch (error) {
+    console.error("❌ Error enviando correo:", error.message);
+    return null;
+  }
+};
 
+export default { sendEmail };
