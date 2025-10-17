@@ -1,4 +1,4 @@
-// ecosystem.config.js (repo-safe)
+// ecosystem.config.cjs (repo-safe, CommonJS)
 module.exports = {
   apps: [
     {
@@ -11,8 +11,7 @@ module.exports = {
       node_args: "--max-old-space-size=512",
       env: {
         NODE_ENV: "production",
-        // Si PORT no existe en .env, usa 4000
-        PORT: process.env.PORT || 4000,
+        PORT: process.env.PORT || 4000
       },
       error_file: "logs/error.log",
       out_file: "logs/out.log",
