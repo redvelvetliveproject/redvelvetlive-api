@@ -4,7 +4,7 @@ const { Schema, model, Types } = mongoose;
 
 const WalletSchema = new Schema(
   {
-    userId:  { type: Types.ObjectId, ref: 'User', required: true },
+    userId: { type: Types.ObjectId, ref: 'User', required: true },
 
     address: {
       type: String,
@@ -28,19 +28,21 @@ const WalletSchema = new Schema(
    ====================================================== */
 
 // Una misma dirección solo puede pertenecer una vez al mismo usuario
-WalletSchema.index({ userId: 1, address: 1 }, { unique: true, name: 'uniq_user_wallet' });
+WalletSchema.index(
+  { userId: 1, address: 1 },
+  { unique: true, name: 'uniq_user_wallet' }
+);
 
 // Listados/consultas habituales
 WalletSchema.index({ userId: 1, isPrimary: 1 },  { name: 'by_user_primary' });
 WalletSchema.index({ userId: 1, isVerified: 1 }, { name: 'by_user_verified' });
 
-// Búsqueda directa por address (útil para validaciones/lookups)
+// Búsqueda directa por address (útil para validaciones)
 WalletSchema.index({ address: 1 }, { name: 'by_address' });
 
 /* ======================================================
    🧩 Helpers
    ====================================================== */
-
 // Marca esta wallet como primaria y desmarca las demás del usuario
 WalletSchema.methods.setPrimary = async function () {
   await this.constructor.updateMany(
