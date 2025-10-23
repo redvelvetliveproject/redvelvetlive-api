@@ -2,7 +2,7 @@
 import mongoose from 'mongoose';
 const { Schema, model, Types } = mongoose;
 
-const TICKET_STATUS = ['open', 'pending', 'closed'];
+const TICKET_STATUS  = ['open', 'pending', 'closed'];
 const TICKET_CATEGORY = ['general', 'wallet', 'account', 'payments', 'abuse', 'dmca', 'other'];
 
 const TicketSchema = new Schema(
@@ -27,8 +27,8 @@ const TicketSchema = new Schema(
     message: { type: String, trim: true, minlength: 10, maxlength: 5000, required: true },
 
     // 📌 Gestión interna
-    status:       { type: String, enum: TICKET_STATUS, default: 'open' },
-    assignedTo:   { type: String, trim: true }, // correo/usuario interno
+    status:      { type: String, enum: TICKET_STATUS, default: 'open' },
+    assignedTo:  { type: String, trim: true },
     internalNotes:{ type: String, trim: true },
 
     // 🧩 Metadatos (UA, lang, tz, ip, etc.)
@@ -41,19 +41,22 @@ const TicketSchema = new Schema(
    📚 Índices centralizados (evita duplicaciones)
    ====================================================== */
 
-// Backoffice: cola por estado y fecha (los más recientes primero)
+// Cola por estado y fecha (para backoffice)
 TicketSchema.index({ status: 1, createdAt: -1 }, { name: 'by_status_createdAt' });
 
-// Filtro por usuario (historial de soporte)
+// Historial de soporte por usuario
 TicketSchema.index({ userId: 1, createdAt: -1 }, { name: 'by_user_createdAt' });
 
-// Reportes por categoría/estado con orden temporal
-TicketSchema.index({ category: 1, status: 1, createdAt: -1 }, { name: 'by_category_status_createdAt' });
+// Reportes por categoría/estado
+TicketSchema.index(
+  { category: 1, status: 1, createdAt: -1 },
+  { name: 'by_category_status_createdAt' }
+);
 
-// Búsqueda por email (casos sin registro/usuario)
+// Búsqueda por email con orden temporal
 TicketSchema.index({ email: 1, createdAt: -1 }, { name: 'by_email_createdAt' });
 
-// Texto completo para backoffice (buscar en mensaje/notas/nombre/email)
+// Búsqueda de texto completo
 TicketSchema.index(
   { message: 'text', internalNotes: 'text', name: 'text', email: 'text' },
   { name: 'text_search_ticket' }
