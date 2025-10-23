@@ -1,10 +1,12 @@
 // backend/src/models/Model.js
 import mongoose from "mongoose";
 
-const modelSchema = new mongoose.Schema(
+const { Schema, model } = mongoose;
+
+const modelSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
+    slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     bio: { type: String, default: "" },
     wallet: { type: String, required: true, trim: true },
 
@@ -37,30 +39,26 @@ const modelSchema = new mongoose.Schema(
       tips: { type: Number, default: 0 },
       views: { type: Number, default: 0 },
     },
-    popularity: {
-      type: Number,
-      default: 0,
-      index: true,
-    },
+    popularity: { type: Number, default: 0 }, // índice centralizado abajo
 
     // 🔐 Control de cuenta
     verified: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
-
-    // 📅 Fechas automáticas
   },
   { timestamps: true }
 );
 
 // 🧠 Pre-save hook: calcula popularidad automáticamente
 modelSchema.pre("save", function (next) {
-  const followers = this.stats.followers || 0;
-  const tips = this.stats.tips || 0;
-  const views = this.stats.views || 0;
-
-  // Fórmula simple pero escalable
+  const followers = this.stats?.followers ?? 0;
+  const tips = this.stats?.tips ?? 0;
+  const views = this.stats?.views ?? 0;
   this.popularity = followers * 1 + tips * 2 + views * 0.5;
   next();
 });
 
-export default mongoose.model("Model", modelSchema);
+// Índices centralizados
+modelSchema.index({ popularity: -1 }); // ordena por popularidad descendente
+
+const Model = mongoose.models.Model || model("Model", modelSchema);
+export default Model;
