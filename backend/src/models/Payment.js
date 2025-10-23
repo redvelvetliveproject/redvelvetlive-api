@@ -17,9 +17,9 @@ const PaymentSchema = new Schema(
     usdEstimated: { type: Number, min: 0 },
 
     // ⛓️ On-chain / gateways
-    txHash:   { type: String, trim: true, sparse: true },     // no unique por si hay reintentos/reorgs
+    txHash:   { type: String, trim: true, sparse: true },
     chainId:  { type: Number },
-    intentId: { type: String, trim: true, sparse: true },     // unique más abajo (centralizado)
+    intentId: { type: String, trim: true, sparse: true },
 
     // 📌 Estado
     status: { type: String, enum: STATUSES, default: 'pending' },
@@ -64,3 +64,4 @@ PaymentSchema.methods.markFailed = function () {
 
 const Payment = mongoose.models.Payment || model('Payment', PaymentSchema);
 export default Payment;
+
