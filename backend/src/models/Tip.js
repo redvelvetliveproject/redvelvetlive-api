@@ -34,7 +34,7 @@ TipSchema.index({ fromUserId: 1, createdAt: -1 });
 // Reportes por moneda y tiempo
 TipSchema.index({ currency: 1, createdAt: -1 });
 
-// Vínculo con pagos y lookup directo
+// Lookup directo con pagos o blockchain
 TipSchema.index({ paymentId: 1 });
 TipSchema.index({ txHash: 1 }, { sparse: true });
 
@@ -45,14 +45,14 @@ TipSchema.methods.toSafeJSON = function () {
   return {
     id: this._id,
     fromUserId: this.fromUserId,
-    toUserId: this.toUserId,
-    paymentId: this.paymentId,
-    amount: this.amount,
-    currency: this.currency,
-    txHash: this.txHash,
-    note: this.note,
-    createdAt: this.createdAt,
-    updatedAt: this.updatedAt,
+    toUserId:   this.toUserId,
+    paymentId:  this.paymentId,
+    amount:     this.amount,
+    currency:   this.currency,
+    txHash:     this.txHash,
+    note:       this.note,
+    createdAt:  this.createdAt,
+    updatedAt:  this.updatedAt,
   };
 };
 
