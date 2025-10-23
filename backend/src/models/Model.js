@@ -22,7 +22,7 @@ const modelSchema = new Schema(
     gallery: [{ type: String }],
 
     // 🎥 Streaming
-    playbackId: { type: String, default: "" }, // Livepeer ID
+    playbackId: { type: String, default: "" },
     isOnline: { type: Boolean, default: false },
 
     // 🌐 Redes sociales
@@ -48,7 +48,7 @@ const modelSchema = new Schema(
   { timestamps: true }
 );
 
-// 🧠 Pre-save hook: calcula popularidad automáticamente
+// 🧠 Pre‑save hook: calcula la popularidad automáticamente
 modelSchema.pre("save", function (next) {
   const followers = this.stats?.followers ?? 0;
   const tips = this.stats?.tips ?? 0;
@@ -57,7 +57,7 @@ modelSchema.pre("save", function (next) {
   next();
 });
 
-// Índices centralizados
+// 📚 Índices centralizados
 modelSchema.index({ popularity: -1 }); // ordena por popularidad descendente
 
 const Model = mongoose.models.Model || model("Model", modelSchema);
