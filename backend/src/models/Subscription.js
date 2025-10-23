@@ -16,12 +16,12 @@ const SubscriptionSchema = new Schema(
     currency: { type: String, default: 'USD' },
 
     // 📌 Estado y vigencia
-    status:              { type: String, enum: SUB_STATUS, default: 'active' },
-    currentPeriodStart:  { type: Date, required: true },
-    currentPeriodEnd:    { type: Date, required: true },
+    status:             { type: String, enum: SUB_STATUS, default: 'active' },
+    currentPeriodStart: { type: Date, required: true },
+    currentPeriodEnd:   { type: Date, required: true },
 
     // 🧩 Proveedor externo
-    provider:   { type: String, trim: true },           // 'stripe' | 'onchain' | etc.
+    provider:   { type: String, trim: true }, // 'stripe' | 'onchain' | etc.
     externalId: { type: String, trim: true, sparse: true },
 
     // 📝 Metadatos
@@ -34,8 +34,8 @@ const SubscriptionSchema = new Schema(
    📚 Índices centralizados (evita duplicaciones)
    ====================================================== */
 
-// ✅ Regla de negocio: 1 suscripción ACTIVA por (clientId, modelId)
-//    Se permite histórico con otros estados (canceled/expired/past_due).
+// Regla de negocio: 1 suscripción ACTIVA por (clientId, modelId)
+// Se permiten históricos con estados distintos a 'active'.
 SubscriptionSchema.index(
   { clientId: 1, modelId: 1 },
   {
@@ -46,13 +46,22 @@ SubscriptionSchema.index(
 );
 
 // Listados del lado de la modelo (suscriptores)
-SubscriptionSchema.index({ modelId: 1, status: 1, currentPeriodEnd: -1 }, { name: 'by_model_status_periodEnd' });
+SubscriptionSchema.index(
+  { modelId: 1, status: 1, currentPeriodEnd: -1 },
+  { name: 'by_model_status_periodEnd' }
+);
 
 // Historial del cliente
-SubscriptionSchema.index({ clientId: 1, createdAt: -1 }, { name: 'by_client_createdAt' });
+SubscriptionSchema.index(
+  { clientId: 1, createdAt: -1 },
+  { name: 'by_client_createdAt' }
+);
 
-// Cron de renovación / expiración (rápido por fecha)
-SubscriptionSchema.index({ status: 1, currentPeriodEnd: 1 }, { name: 'by_status_periodEnd' });
+// Cron de renovación / expiración
+SubscriptionSchema.index(
+  { status: 1, currentPeriodEnd: 1 },
+  { name: 'by_status_periodEnd' }
+);
 
 // Unicidad por proveedor externo (opcional pero recomendado)
 SubscriptionSchema.index(
@@ -70,5 +79,6 @@ SubscriptionSchema.methods.cancel = function () {
   return this.save();
 };
 
-const Subscription = mongoose.models.Subscription || model('Subscription', SubscriptionSchema);
+const Subscription =
+  mongoose.models.Subscription || model('Subscription', SubscriptionSchema);
 export default Subscription;
