@@ -1,26 +1,10 @@
-// ============================================
-// 👩‍💻 RedVelvetLive — Modelo Mongoose de las Modelos (PRO FINAL)
-// ============================================
-//
-// Estructura de datos unificada para modelos registrados en la plataforma.
-// Incluye:
-//   ✅ Información básica (nombre, país, edad, biografía)
-//   ✅ Campos técnicos (wallet, estado, fechas)
-//   ✅ Control de roles (featured, ambassador)
-//   ✅ Seguridad y trazabilidad
-//
-// Compatible con:
-//   - Rutas públicas (perfil / listado / búsqueda)
-//   - Panel administrativo (estado, destaque, embajadora)
-//   - Integración Web3 (wallet BSC / ONECOP)
-// ============================================
-
+// backend/src/models/ModelUser.js
 import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
 
 // ============================================================
-// 🧩 Esquema base de modelo
+// 🧩 Esquema base de modelo (ModelUser)
 // ============================================================
 const modelUserSchema = new Schema(
   {
@@ -35,7 +19,6 @@ const modelUserSchema = new Schema(
       type: String,
       trim: true,
       lowercase: true,
-      index: true,
     },
     country: {
       type: String,
@@ -59,7 +42,6 @@ const modelUserSchema = new Schema(
       required: true,
       trim: true,
       lowercase: true,
-      index: true,
     },
     network: {
       type: String,
@@ -71,19 +53,16 @@ const modelUserSchema = new Schema(
       type: String,
       enum: ["ACTIVE", "INACTIVE", "BANNED"],
       default: "INACTIVE",
-      index: true,
     },
 
     // 🌟 Roles especiales
     featured: {
       type: Boolean,
-      default: false, // destacada
-      index: true,
+      default: false,
     },
     ambassador: {
       type: Boolean,
-      default: false, // embajadora
-      index: true,
+      default: false,
     },
 
     // 📸 Contenido y estadísticas
@@ -129,12 +108,18 @@ const modelUserSchema = new Schema(
 );
 
 // ============================================================
-// 🧠 Índices y optimizaciones
+// 🧠 Índices centralizados y optimizaciones
 // ============================================================
+
+// Búsqueda de texto por nombre, país o wallet
 modelUserSchema.index({ name: "text", country: "text", wallet: "text" });
-modelUserSchema.index({ status: 1 });
-modelUserSchema.index({ featured: 1 });
-modelUserSchema.index({ ambassador: 1 });
+
+// Índices individuales para email y wallet (búsqueda exacta)
+modelUserSchema.index({ email: 1 });
+modelUserSchema.index({ wallet: 1 });
+
+// Índice combinado para filtros por estado y roles especiales
+modelUserSchema.index({ status: 1, featured: 1, ambassador: 1 });
 
 // ============================================================
 // ⚙️ Métodos personalizados
@@ -172,5 +157,6 @@ modelUserSchema.methods.toggleAmbassador = async function (ambassador) {
 // ============================================================
 // 🧾 Exportación
 // ============================================================
-const ModelUser = model("ModelUser", modelUserSchema);
+const ModelUser =
+  mongoose.models.ModelUser || model("ModelUser", modelUserSchema);
 export default ModelUser;
