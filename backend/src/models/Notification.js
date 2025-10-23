@@ -5,7 +5,6 @@ const { Schema, model, Types } = mongoose;
 /**
  * Notification (versión PRO)
  * - Sin índices en campos; índices centralizados al final.
- * - Campos flexibles (title/body/data) para distintos tipos de notificación.
  */
 const NotificationSchema = new Schema(
   {
@@ -20,17 +19,15 @@ const NotificationSchema = new Schema(
 );
 
 /* ===========================
-   Índices centralizados
+   📚 Índices centralizados
    =========================== */
 NotificationSchema.index({ userId: 1, type: 1, createdAt: -1 });
+// Opcional si usas filtros por leídas/no leídas:
+// NotificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
 
-/**
- * Si necesitas filtrar por leídas/no leídas, puedes habilitar uno de estos:
- * - NotificationSchema.index({ readAt: 1 });
- * - NotificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
- */
-
-/* Helper para marcar como leída */
+/* ===========================
+   🧩 Métodos
+   =========================== */
 NotificationSchema.methods.markAsRead = function () {
   this.readAt = new Date();
   return this.save();
