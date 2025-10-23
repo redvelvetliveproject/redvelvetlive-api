@@ -1,16 +1,4 @@
-// ============================================
-// 💰 RedVelvetLive — Modelo PaymentOrder (PRO FINAL)
-// ============================================
-//
-// Representa todas las transacciones financieras del sistema:
-//   ✅ Tips (propinas)
-//   ✅ Withdrawals (retiros)
-//   ✅ Distributions (distribuciones automáticas)
-//   ✅ Bonuses (bonificaciones)
-//
-// 100% compatible con BSC, ONECOP y USDT.
-// ============================================
-
+// backend/src/models/PaymentOrder.js
 import mongoose from "mongoose";
 
 const { Schema, model } = mongoose;
@@ -23,9 +11,8 @@ const paymentOrderSchema = new Schema(
     // 👩‍💻 Modelo o usuario receptor del pago
     modelId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ModelUser", // nombre de tu modelo de modelos
+      ref: "ModelUser",
       required: true,
-      index: true,
     },
 
     // 💵 Monto (en tokens o USDT)
@@ -40,7 +27,6 @@ const paymentOrderSchema = new Schema(
       type: String,
       enum: ["ONECOP", "USDT"],
       default: "ONECOP",
-      index: true,
     },
 
     // 🔗 Wallet destino
@@ -49,7 +35,6 @@ const paymentOrderSchema = new Schema(
       required: true,
       trim: true,
       match: [/^0x[a-fA-F0-9]{40}$/, "Dirección de wallet inválida"],
-      index: true,
     },
 
     // 🧾 Hash de transacción
@@ -57,7 +42,6 @@ const paymentOrderSchema = new Schema(
       type: String,
       trim: true,
       default: "",
-      index: true,
     },
 
     // 🧮 Tipo de operación
@@ -65,7 +49,6 @@ const paymentOrderSchema = new Schema(
       type: String,
       enum: ["TIP", "WITHDRAWAL", "DISTRIBUTION", "BONUS"],
       default: "TIP",
-      index: true,
     },
 
     // ⚙️ Estado
@@ -73,7 +56,6 @@ const paymentOrderSchema = new Schema(
       type: String,
       enum: ["PENDING", "PROCESSING", "CONFIRMED", "FAILED", "CANCELLED"],
       default: "PENDING",
-      index: true,
     },
 
     // 🧠 Datos adicionales
@@ -91,10 +73,6 @@ const paymentOrderSchema = new Schema(
       verifiedBy: { type: String, default: "" },
       verificationDate: { type: Date },
     },
-
-    // 🕒 Fechas
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
   },
   {
     timestamps: true,
@@ -107,18 +85,23 @@ const paymentOrderSchema = new Schema(
 // ==========================================================
 paymentOrderSchema.pre("save", function (next) {
   if (this.txHash && !this.metadata.txExplorer) {
-    this.metadata.txExplorer = `${process.env.BLOCKCHAIN_EXPLORER || "https://bscscan.com"}/tx/${this.txHash}`;
+    this.metadata.txExplorer = `${
+      process.env.BLOCKCHAIN_EXPLORER || "https://bscscan.com"
+    }/tx/${this.txHash}`;
   }
-  this.updatedAt = Date.now();
+  this.updatedAt = new Date();
   next();
 });
 
 // ==========================================================
-// ⚙️ Índices
+// 📚 Índices centralizados
 // ==========================================================
+paymentOrderSchema.index({ modelId: 1 });
 paymentOrderSchema.index({ status: 1, createdAt: -1 });
 paymentOrderSchema.index({ currency: 1 });
 paymentOrderSchema.index({ type: 1 });
+paymentOrderSchema.index({ destinationWallet: 1 });
+paymentOrderSchema.index({ txHash: 1 });
 paymentOrderSchema.index({ "metadata.txExplorer": 1 });
 
 // ==========================================================
@@ -148,7 +131,9 @@ paymentOrderSchema.methods.isConfirmed = function () {
 paymentOrderSchema.methods.markAsConfirmed = function (txHash, verifier = "system") {
   this.status = "CONFIRMED";
   this.txHash = txHash;
-  this.metadata.txExplorer = `${process.env.BLOCKCHAIN_EXPLORER || "https://bscscan.com"}/tx/${txHash}`;
+  this.metadata.txExplorer = `${
+    process.env.BLOCKCHAIN_EXPLORER || "https://bscscan.com"
+  }/tx/${txHash}`;
   this.audit.verifiedBy = verifier;
   this.audit.verificationDate = new Date();
   this.updatedAt = new Date();
@@ -157,5 +142,6 @@ paymentOrderSchema.methods.markAsConfirmed = function (txHash, verifier = "syste
 // ==========================================================
 // ✅ Exportación
 // ==========================================================
-const PaymentOrder = model("PaymentOrder", paymentOrderSchema);
+const PaymentOrder =
+  mongoose.models.PaymentOrder || model("PaymentOrder", paymentOrderSchema);
 export default PaymentOrder;
