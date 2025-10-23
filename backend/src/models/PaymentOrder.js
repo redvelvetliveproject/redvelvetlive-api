@@ -1,64 +1,29 @@
 // backend/src/models/PaymentOrder.js
 import mongoose from "mongoose";
+const { Schema, model, Types } = mongoose;
 
-const { Schema, model } = mongoose;
-
-// ==========================================================
-// 🧾 Definición del esquema
-// ==========================================================
 const paymentOrderSchema = new Schema(
   {
-    // 👩‍💻 Modelo o usuario receptor del pago
-    modelId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "ModelUser",
-      required: true,
-    },
-
-    // 💵 Monto (en tokens o USDT)
-    amount: {
-      type: Number,
-      required: true,
-      min: [0.000001, "El monto debe ser mayor a 0"],
-    },
-
-    // 💱 Moneda
-    currency: {
-      type: String,
-      enum: ["ONECOP", "USDT"],
-      default: "ONECOP",
-    },
-
-    // 🔗 Wallet destino
+    modelId: { type: Types.ObjectId, ref: "ModelUser", required: true },
+    amount: { type: Number, required: true, min: 0.000001 },
+    currency: { type: String, enum: ["ONECOP", "USDT"], default: "ONECOP" },
     destinationWallet: {
       type: String,
       required: true,
       trim: true,
       match: [/^0x[a-fA-F0-9]{40}$/, "Dirección de wallet inválida"],
     },
-
-    // 🧾 Hash de transacción
-    txHash: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-
-    // 🧮 Tipo de operación
+    txHash: { type: String, trim: true, default: "" },
     type: {
       type: String,
       enum: ["TIP", "WITHDRAWAL", "DISTRIBUTION", "BONUS"],
       default: "TIP",
     },
-
-    // ⚙️ Estado
     status: {
       type: String,
       enum: ["PENDING", "PROCESSING", "CONFIRMED", "FAILED", "CANCELLED"],
       default: "PENDING",
     },
-
-    // 🧠 Datos adicionales
     metadata: {
       note: { type: String, default: "" },
       adminActionBy: { type: String, default: "" },
@@ -66,8 +31,6 @@ const paymentOrderSchema = new Schema(
       source: { type: String, default: "frontend" },
       device: { type: String, default: "" },
     },
-
-    // 🧾 Auditoría
     audit: {
       createdBy: { type: String, default: "system" },
       verifiedBy: { type: String, default: "" },
