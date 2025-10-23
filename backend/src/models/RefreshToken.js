@@ -10,13 +10,13 @@ const { Schema, model, Types } = mongoose;
  */
 const RefreshTokenSchema = new Schema(
   {
-    userId:     { type: Types.ObjectId, ref: 'User', required: true },
-    tokenHash:  { type: String, required: true, unique: true }, // sha256(token)
-    userAgent:  { type: String, trim: true },
-    ip:         { type: String, trim: true },
-    expiresAt:  { type: Date, required: true },                  // TTL via índice
-    revokedAt:  { type: Date },                                   // null = activo
-    meta:       { type: Schema.Types.Mixed },
+    userId:    { type: Types.ObjectId, ref: 'User', required: true },
+    tokenHash: { type: String, required: true, unique: true }, // sha256(token)
+    userAgent: { type: String, trim: true },
+    ip:        { type: String, trim: true },
+    expiresAt: { type: Date, required: true },                  // TTL via índice
+    revokedAt: { type: Date },                                  // null = activo
+    meta:      { type: Schema.Types.Mixed },
   },
   { timestamps: true }
 );
@@ -24,16 +24,11 @@ const RefreshTokenSchema = new Schema(
 /* ===========================
    Índices centralizados
    =========================== */
+
 // TTL exacto: elimina el doc cuando se alcance expiresAt
 RefreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Consultas comunes: tokens vigentes por usuario, ordenables por exp
-RefreshTokenSchema.index(
-  { userId: 1, expiresAt: 1 },
-  { partialFilterExpression: { revokedAt: { $exists: false } } }
-);
-
-// Búsquedas y limpieza por usuario (incluye revocados)
+// Consulta rápida por usuario
 RefreshTokenSchema.index({ userId: 1 });
 
 // tokenHash ya es unique por definición del campo
@@ -52,5 +47,4 @@ RefreshTokenSchema.methods.isActive = function () {
 
 const RefreshToken =
   mongoose.models.RefreshToken || model('RefreshToken', RefreshTokenSchema);
-
 export default RefreshToken;
