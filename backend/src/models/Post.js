@@ -1,43 +1,37 @@
-// backend/src/models/Post.js
+// backend/src/models/RefreshToken.js
 import mongoose from 'mongoose';
-const { Schema, model } = mongoose;
+const { Schema, model, Types } = mongoose;
 
-const PostSchema = new Schema(
+const RefreshTokenSchema = new Schema(
   {
-    slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    title: { type: String, required: true, trim: true, maxlength: 200 },
-    content: { type: String, required: true },
-    summary: { type: String, trim: true, maxlength: 500 },
-    tags: { type: [String], default: [] },
-    author: { type: String, default: 'RedVelvetLive' },
-    published: { type: Boolean, default: false },
-    publishedAt: { type: Date, default: null },
+    userId:     { type: Types.ObjectId, ref: 'User', required: true },
+    tokenHash:  { type: String, required: true, unique: true },
+    userAgent:  { type: String, trim: true },
+    ip:         { type: String, trim: true },
+    expiresAt:  { type: Date, required: true },
+    revokedAt:  { type: Date },
+    meta:       { type: Schema.Types.Mixed },
   },
   { timestamps: true }
 );
 
-// Normalización de tags y fechas
-PostSchema.pre('save', function (next) {
-  if (Array.isArray(this.tags)) {
-    this.tags = [...new Set(
-      this.tags
-        .filter(Boolean)
-        .map(t => String(t).trim().toLowerCase())
-        .filter(t => t.length > 0)
-    )];
-  }
-  if (this.isModified('published')) {
-    this.publishedAt = this.published ? new Date() : null;
-  }
-  next();
-});
-
 /* =============================
    📚 Índices centralizados
    ============================= */
-PostSchema.index({ published: 1, publishedAt: -1, createdAt: -1 });
-// PostSchema.index({ tags: 1 }); // opcional si filtras por tag
-// PostSchema.index({ title: 'text', content: 'text', summary: 'text' }); // búsqueda textual
+RefreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+RefreshTokenSchema.index({ userId: 1 });
 
-const Post = mongoose.models.Post || model('Post', PostSchema);
-export default Post;
+/* =============================
+   🧠 Métodos de instancia
+   ============================= */
+RefreshTokenSchema.methods.revoke = function () {
+  this.revokedAt = new Date();
+  return this.save();
+};
+
+RefreshTokenSchema.methods.isActive = function () {
+  return !this.revokedAt && this.expiresAt > new Date();
+};
+
+const RefreshToken = mongoose.models.RefreshToken || model('RefreshToken', RefreshTokenSchema);
+export default RefreshToken;
