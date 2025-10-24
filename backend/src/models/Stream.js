@@ -6,53 +6,34 @@ const STREAM_STATUS = ['idle', 'live', 'ended', 'error'];
 
 const StreamSchema = new Schema(
   {
-    // 🔗 Relación
     userId: { type: Types.ObjectId, ref: 'User', required: true },
-
-    // 🎥 Datos del proveedor (Livepeer u otros)
     name: { type: String, trim: true, maxlength: 140 },
     provider: { type: String, default: 'livepeer' },
-
-    // 🆔 IDs del proveedor (pueden ser nulos → índices sparse)
-    assetId:    { type: String, trim: true, sparse: true },
-    streamId:   { type: String, trim: true, sparse: true },
+    assetId: { type: String, trim: true, sparse: true },
+    streamId: { type: String, trim: true, sparse: true },
     playbackId: { type: String, trim: true, sparse: true },
-
-    // 📌 Estado
     status: { type: String, enum: STREAM_STATUS, default: 'idle' },
     isRecorded: { type: Boolean, default: false },
-
-    // 📊 Métricas
     viewersPeak: { type: Number, default: 0, min: 0 },
     durationSec: { type: Number, default: 0, min: 0 },
-
-    // 📝 Metadata adicional
     meta: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
 );
 
-/* ======================================================
-   📚 Índices centralizados (evita duplicaciones)
-   ====================================================== */
-
-// Listados típicos por usuario/estado/fecha
+/* =============================
+   📚 Índices centralizados
+   ============================= */
 StreamSchema.index({ userId: 1, status: 1, createdAt: -1 });
-
-// Filtrado por proveedor + estado (monitoring/backoffice)
 StreamSchema.index({ provider: 1, status: 1, createdAt: -1 });
-
-// Búsquedas directas por IDs del proveedor
 StreamSchema.index({ playbackId: 1 }, { sparse: true });
-StreamSchema.index({ streamId: 1 },  { sparse: true });
-StreamSchema.index({ assetId: 1 },   { sparse: true });
-
-// VOD / grabaciones recientes
+StreamSchema.index({ streamId: 1 }, { sparse: true });
+StreamSchema.index({ assetId: 1 }, { sparse: true });
 StreamSchema.index({ isRecorded: 1, createdAt: -1 });
 
-/* ======================================================
-   🧩 Métodos de conveniencia
-   ====================================================== */
+/* =============================
+   🧠 Métodos
+   ============================= */
 StreamSchema.methods.start = function () {
   this.status = 'live';
   return this.save();
