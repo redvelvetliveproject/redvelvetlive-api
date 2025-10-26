@@ -1,8 +1,8 @@
 // scripts/scan-index-flags.js
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
-const MODEL_DIR = path.join(process.cwd(), 'backend', 'src', 'models');
+const MODEL_DIR = path.join(__dirname, '../backend/src/models');
 
 function scanFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf-8');
@@ -21,10 +21,7 @@ function scanDirectory(dirPath) {
     if (fs.statSync(fullPath).isFile() && file.endsWith('.js')) {
       const matches = scanFile(fullPath);
       if (matches.length > 0) {
-        results.push({
-          file,
-          matches
-        });
+        results.push({ file, matches });
       }
     }
   }
